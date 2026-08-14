@@ -1,0 +1,104 @@
+feature_name: Nozomi Station
+problem_statement: >-
+  Construir una radio web pública y comunitaria que emita música de forma
+  continua y sincronizada, acepte solicitudes desde Slack y mantenga la
+  emisión cuando no existan solicitudes mediante una playlist complementaria
+  basada en el historial reciente. La experiencia visual y sonora simula un
+  viaje en Shinkansen por Neo-Tokyo e incluye chat anónimo.
+
+constraints:
+  - La aplicación se construirá con Elixir, Phoenix y LiveView.
+  - La radio debe operar 24/7 y recuperarse automáticamente de fallos y reinicios.
+  - El primer objetivo medible es soportar 50 oyentes simultáneos.
+  - La diferencia máxima entre oyentes será de 2 segundos.
+  - La emisión usará HLS con una latencia aceptable de 5 a 15 segundos.
+  - El audio se normalizará inicialmente a AAC de 192 kbps.
+  - El primer despliegue será en un VPS y deberá ser portable mediante contenedores.
+  - La web y el chat serán públicos y no requerirán cuentas.
+  - Los videos aceptados no podrán ser emisiones en directo ni superar 15 minutos.
+  - No se implementarán mecanismos para evadir DRM ni controles de acceso.
+  - La descarga y retransmisión de contenido de internet se acepta como un riesgo legal y de términos de servicio.
+  - Los sonidos ferroviarios encontrados en internet se usarán aceptando el mismo riesgo de licencia.
+
+out_of_scope:
+  - Aplicaciones móviles nativas.
+  - Solicitudes musicales desde la web.
+  - Cuentas de usuario para oyentes.
+  - Moderación manual del chat o de solicitudes.
+  - Panel administrativo.
+  - Múltiples fondos o recorridos visuales.
+  - Escalado inicial por encima de 50 oyentes simultáneos.
+  - Evasión de DRM o controles técnicos de acceso.
+
+key_decisions:
+  - decision: Todos los oyentes escucharán la misma emisión y el mismo punto temporal.
+    rationale: La experiencia debe comportarse como una radio real y no como playlists individuales.
+  - decision: El oyente iniciará la emisión mediante el botón «Subir al tren / Escuchar en vivo».
+    rationale: Los navegadores bloquean la reproducción automática con sonido.
+  - decision: El sistema procesará todos los enlaces válidos de cada mensaje de un canal específico de Slack en orden FIFO.
+    rationale: Slack será la única interfaz de solicitudes del MVP.
+  - decision: No habrá moderación, cuotas ni límites de canciones por usuario.
+    rationale: La comunidad de Slack se considera una fuente suficientemente confiable para el MVP.
+  - decision: El bot responderá en hilo con la canción detectada, estado y posición en la cola.
+    rationale: El solicitante necesita confirmar que el enlace fue procesado.
+  - decision: Los enlaces de Spotify se resolverán a la mejor coincidencia disponible en YouTube incluso con baja confianza.
+    rationale: Spotify no ofrece el archivo de audio completo y se prioriza automatizar la solicitud.
+  - decision: Se descartarán canciones duplicadas que estén pendientes o hayan sonado entre las últimas 10.
+    rationale: Evitar repeticiones próximas sin bloquear futuras solicitudes para siempre.
+  - decision: El nombre visible de Slack se mostrará públicamente cuando suene una solicitud, sin aviso adicional.
+    rationale: Es la experiencia elegida para reconocer al solicitante.
+  - decision: Una solicitud nueva esperará a que termine la canción complementaria actual.
+    rationale: Evitar interrupciones bruscas.
+  - decision: Si una solicitud no está descargada a tiempo, sonará contenido complementario y la solicitud recuperará prioridad cuando esté lista.
+    rationale: La emisión no debe quedar en silencio.
+  - decision: La playlist complementaria mantendrá al menos 10 canciones descargadas y listas.
+    rationale: Crear margen frente a demoras o fallos de descarga.
+  - decision: El arranque sin historial usará búsquedas de rock y música de los años 80.
+    rationale: Proporcionar una semilla automática sin configuración manual.
+  - decision: El mood se calculará con géneros, artistas relacionados y décadas de las últimas 20 solicitudes de Slack.
+    rationale: Las canciones automáticas no deben retroalimentar el perfil musical.
+  - decision: Los archivos descargados se eliminarán después de reproducirse y dejar de ser necesarios para HLS.
+    rationale: Evitar una biblioteca permanente y crecimiento ilimitado del disco.
+  - decision: Las canciones tendrán un fundido cruzado de aproximadamente 4 segundos.
+    rationale: Mantener una sensación de radio continua.
+  - decision: El servidor reanudará la canción cerca del punto anterior después de reiniciarse.
+    rationale: Conservar la continuidad de la emisión.
+  - decision: Los oyentes activos podrán votar para saltar una canción con un umbral de floor(n/2)+1.
+    rationale: Sustituir controles administrativos por una decisión comunitaria.
+  - decision: El número de oyentes del umbral se congelará al emitirse el primer voto de cada canción.
+    rationale: Evitar que el objetivo cambie durante la votación.
+  - decision: Una canción saltada se excluirá del cálculo del mood y de futuras selecciones complementarias.
+    rationale: Interpretar el voto mayoritario como una señal negativa.
+  - decision: La página usará un único video en bucle de un Shinkansen recorriendo Neo-Tokyo.
+    rationale: Obtener una identidad visual fuerte sin construir una escena 3D o procedural.
+  - decision: El video se teñirá con colores de la portada y tendrá una onda reactiva al audio.
+    rationale: Vincular la escena visual con la canción actual.
+  - decision: Se mostrarán título, artista, álbum, portada, año, géneros, reseña, relacionados y letras sincronizadas cuando estén disponibles.
+    rationale: Complementar la escucha sin impedir la reproducción cuando falten datos.
+  - decision: Las secciones sin letras o metadatos se ocultarán.
+    rationale: Las fuentes no garantizan información completa.
+  - decision: El chat mostrará y persistirá únicamente los últimos 50 mensajes.
+    rationale: Dar contexto a quienes llegan sin conservar un historial ilimitado.
+  - decision: Los alias combinarán servicios, números, estaciones, trenes y colores japoneses.
+    rationale: Reforzar la temática ferroviaria.
+  - decision: El alias se guardará localmente y podrá regenerarse con un botón.
+    rationale: Mantener una identidad seudónima estable sin cuentas.
+  - decision: El chat tendrá límites automáticos de longitud, frecuencia y mensajes repetidos.
+    rationale: Reducir abuso básico en un chat público y anónimo.
+  - decision: Habrá interludios con sonidos, anuncios y melodías ferroviarias.
+    rationale: Reforzar la ambientación y cubrir esperas excepcionales sin silencio.
+  - decision: Los interludios de cambio de género se usarán solo en cambios claros y como máximo una vez cada cinco canciones.
+    rationale: Evitar que los efectos resulten repetitivos.
+  - decision: Los avisos superpuestos reducirán temporalmente el volumen de la música.
+    rationale: Mantener inteligibilidad sin cortar por completo la transición.
+  - decision: Si una espera supera un interludio, se encadenarán clips ferroviarios distintos hasta recuperar música reproducible.
+    rationale: Mantener la emisión continua durante fallos transitorios.
+
+success_criteria:
+  - La radio permanece activa 24/7 sin silencios evitables cuando no existen solicitudes.
+  - Un enlace válido de Slack recibe confirmación y llega a la cola sin intervención manual.
+  - La radio vuelve a solicitudes en cuanto existe una lista solicitada reproducible y regresa después a la complementaria.
+  - Cincuenta oyentes simultáneos permanecen dentro de una diferencia temporal de 2 segundos.
+  - Un reinicio recupera automáticamente la emisión cerca del punto anterior.
+  - La playlist complementaria conserva un margen de 10 canciones listas.
+  - El chat público mantiene solo sus últimos 50 mensajes y limita spam básico.

@@ -1,0 +1,201 @@
+initiative: Nozomi Station MVP
+status: scoped
+
+core_value: >-
+  Ofrecer una radio comunitaria pública, continua y compartida, donde Slack
+  decide la música y una ambientación de Shinkansen mantiene el viaje activo
+  incluso cuando no hay solicitudes.
+
+summary: >-
+  Nozomi Station será una radio web pública que mantendrá a todos los oyentes
+  en la misma emisión. Las solicitudes llegarán desde un canal de Slack y
+  tendrán prioridad en los límites entre canciones. Cuando no existan
+  solicitudes reproducibles, una selección complementaria mantendrá música
+  disponible a partir de las preferencias observadas en solicitudes recientes.
+
+  El MVP también cubrirá la experiencia pública completa: reproductor en vivo,
+  información musical, recorrido visual por Neo-Tokyo, ambientación ferroviaria,
+  chat seudónimo y votación comunitaria para saltar canciones. La continuidad,
+  recuperación y capacidad inicial forman parte del alcance, no una fase futura.
+
+in_scope:
+  - epic_id: E01
+    name: Emisión continua y sincronizada
+    outcome: >-
+      Todos los oyentes activos reciben la misma programación con continuidad,
+      transiciones musicales y un punto temporal compartido.
+  - epic_id: E02
+    name: Solicitudes automáticas desde Slack
+    outcome: >-
+      Los enlaces admitidos se identifican, confirman, deduplican y ordenan sin
+      moderación ni intervención manual.
+  - epic_id: E03
+    name: Programación complementaria
+    outcome: >-
+      La radio mantiene un margen de música preparada y selecciona contenido a
+      partir de las últimas solicitudes o de la semilla inicial rock/años 80.
+  - epic_id: E04
+    name: Transiciones e interludios ferroviarios
+    outcome: >-
+      Los cambios claros de género y las esperas excepcionales usan sonidos,
+      avisos o melodías ferroviarias sin dejar silencios evitables.
+  - epic_id: E05
+    name: Experiencia del reproductor
+    outcome: >-
+      El público puede entrar en vivo, ver el viaje por Neo-Tokyo, observar la
+      onda de audio y consultar la información disponible de la canción.
+  - epic_id: E06
+    name: Chat público seudónimo
+    outcome: >-
+      Los oyentes conversan con alias ferroviarios persistentes y protección
+      automática básica contra abuso.
+  - epic_id: E07
+    name: Votación comunitaria para saltar canciones
+    outcome: >-
+      Una mayoría estable de oyentes activos puede avanzar la emisión y esa
+      decisión afecta las futuras selecciones complementarias.
+  - epic_id: E08
+    name: Operación y recuperación
+    outcome: >-
+      La radio recupera su emisión después de fallos, elimina contenido temporal
+      y cumple el objetivo inicial de capacidad y sincronización.
+
+out_of_scope:
+  - item: Aplicaciones móviles nativas
+    reason: La web adaptable cubre escritorio y móvil durante el MVP.
+  - item: Solicitudes musicales desde la web
+    reason: Slack es el único canal de solicitudes validado para esta versión.
+  - item: Cuentas de usuario para oyentes
+    reason: Los alias locales entregan identidad suficiente sin registro.
+  - item: Moderación manual del chat o de solicitudes
+    reason: El MVP acepta automáticamente las solicitudes y solo aplica límites básicos al chat.
+  - item: Panel administrativo o controles privados de emisión
+    reason: La continuidad es automática y el salto de canciones es comunitario.
+  - item: Múltiples recorridos o fondos visuales
+    reason: Un solo video adaptable valida la experiencia antes de ampliar recursos visuales.
+  - item: Escalado garantizado por encima de 50 oyentes simultáneos
+    reason: Se validará primero la demanda y operación de una comunidad pequeña.
+  - item: Biblioteca musical permanente
+    reason: El contenido descargado es temporal y se elimina después de su uso.
+  - item: Garantizar letras o metadatos completos para toda canción
+    reason: La disponibilidad depende de fuentes externas y no debe bloquear la emisión.
+  - item: Filtro de contenido explícito
+    reason: El propietario decidió permitirlo en el MVP.
+  - item: Prevención fuerte de votos múltiples o identidades falsas
+    reason: La identidad local ofrece una barrera ligera; controles de cuenta quedan diferidos.
+  - item: Evasión de DRM o controles técnicos de acceso
+    reason: Queda explícitamente prohibida aunque una fuente no pueda procesarse.
+  - item: Resolución de licencias de música y sonidos de terceros
+    reason: El propietario acepta el riesgo legal para el prototipo; una operación pública autorizada requiere una iniciativa separada.
+
+constraints:
+  product:
+    - La radio y el chat serán públicos y no requerirán autenticación.
+    - La emisión deberá operar 24/7 sin intervención habitual.
+    - Los videos admitidos no serán directos y durarán como máximo 15 minutos.
+    - Las secciones de información no disponibles se ocultarán sin interrumpir la música.
+  technical:
+    - El producto se construirá con Elixir, Phoenix y LiveView.
+    - La entrega de audio aceptará entre 5 y 15 segundos de latencia.
+    - El audio inicial será AAC a 192 kbps.
+    - El despliegue inicial será portable y tendrá como primer destino un VPS.
+  capacity:
+    - El objetivo inicial será 50 oyentes simultáneos.
+    - Dos oyentes activos no deberán diferir en más de 2 segundos.
+  content_risk:
+    - La descarga y retransmisión desde fuentes públicas puede infringir licencias o términos de servicio.
+    - Los sonidos ferroviarios encontrados en internet presentan el mismo riesgo de licencia.
+    - No se sortearán DRM ni controles de acceso.
+
+success_criteria:
+  - id: SC01
+    observable: La emisión funciona durante 24 horas sin silencios evitables ni intervención manual.
+  - id: SC02
+    observable: Un mensaje de Slack con uno o más enlaces válidos recibe confirmación y añade cada canción no duplicada a la cola.
+  - id: SC03
+    observable: Una canción solicitada toma prioridad al terminar la canción complementaria actual y la radio regresa después al contenido complementario.
+  - id: SC04
+    observable: La programación complementaria mantiene 10 canciones listas durante operación normal.
+  - id: SC05
+    observable: Si no hay canción lista, suenan interludios distintos hasta recuperar contenido reproducible.
+  - id: SC06
+    observable: Cincuenta oyentes simultáneos permanecen dentro de una diferencia de reproducción de 2 segundos.
+  - id: SC07
+    observable: Después de reiniciar el servicio, la emisión vuelve cerca del punto anterior sin intervención manual.
+  - id: SC08
+    observable: Un oyente entra en vivo desde un navegador moderno de escritorio o móvil y ve la canción, ambientación e información disponible.
+  - id: SC09
+    observable: El chat conserva únicamente los últimos 50 mensajes y rechaza exceso de frecuencia, longitud o repetición.
+  - id: SC10
+    observable: Al alcanzar floor(n/2)+1 votos sobre una base congelada de oyentes activos, la canción se salta y deja de influir en la programación complementaria.
+  - id: SC11
+    observable: Los archivos temporales dejan de ocupar almacenamiento después de terminar su uso en la emisión.
+
+references:
+  - path: specs/planning-context.yaml
+    relation: Decisiones confirmadas durante la elaboración del producto.
+  - path: specs/adr/0001-liquidsoap-broadcast-engine.md
+    relation: Límite aceptado entre Phoenix y el motor de emisión.
+
+# Prior Art
+prior_art:
+  - candidate: Liquidsoap 2.4.5
+    source: https://www.liquidsoap.info/doc-2.4.5/
+    verdict: adopt
+    notes: >-
+      Ya proporciona colas de solicitudes, fuentes de respaldo, crossfade y
+      salida HLS AAC a 192 kbps. Evita construir un motor de radio sobre FFmpeg.
+  - candidate: Phoenix LiveView 1.2.9
+    source: https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html
+    verdict: adopt
+    notes: >-
+      Cubre la interfaz y actualizaciones en tiempo real; el reproductor y la
+      visualización de audio quedan como hooks pequeños del navegador.
+  - candidate: Oban 2.23.1
+    source: https://hex.pm/packages/oban
+    verdict: adopt
+    notes: >-
+      Aporta trabajos persistentes y reintentos para procesar eventos de Slack,
+      resolver metadatos y preparar medios fuera de la respuesta HTTP.
+  - candidate: Slack Events API por HTTP
+    source: https://docs.slack.dev/apis/events-api/
+    verdict: compose
+    notes: >-
+      Phoenix puede recibir y verificar eventos directamente y responder 2xx en
+      menos de tres segundos antes de encolar el trabajo. No hace falta un SDK.
+  - candidate: Spotify Web API
+    source: https://developer.spotify.com/documentation/web-api/reference/get-track
+    verdict: adopt
+    notes: >-
+      Se usará solo para identificar enlaces y metadatos. Development Mode exige
+      una cuenta Premium y está limitado para proyectos de prueba desde 2026.
+  - candidate: YouTube Data API
+    source: https://developers.google.com/youtube/v3/docs/videos/list
+    verdict: adopt
+    notes: >-
+      Permite buscar candidatos y verificar duración y estado de directo antes
+      de preparar una solicitud.
+  - candidate: yt-dlp
+    source: https://github.com/yt-dlp/yt-dlp
+    verdict: adopt
+    notes: >-
+      Resuelve y extrae el audio aceptado. Se ejecutará como proceso externo con
+      límites de tiempo, tamaño y duración; no se reimplementará un descargador.
+  - candidate: Last.fm API
+    source: https://www.last.fm/api
+    verdict: adopt
+    notes: >-
+      Sus operaciones de tags, artistas similares y canciones destacadas cubren
+      el mood complementario sin crear un recomendador propio.
+  - candidate: LRCLIB
+    source: https://lrclib.net/docs
+    verdict: adopt
+    notes: >-
+      Entrega letras sincronizadas cuando existen; cualquier ausencia solo
+      oculta la sección correspondiente.
+  - candidate: hls.js 1.7.0
+    source: https://hlsjs.video-dev.org/api-docs/
+    verdict: adopt
+    notes: >-
+      Añade reproducción HLS en navegadores sin soporte nativo. Safari usará su
+      capacidad integrada.
