@@ -19,12 +19,22 @@ defmodule NozomiStation.Media.Resolver do
     case URI.parse(url) do
       %URI{scheme: "https", host: "youtu.be", path: "/" <> id}
       when id != "" ->
-        if Regex.match?(@youtube_id, id), do: {:ok, :youtube, id}, else: {:error, :invalid_url}
+        youtube(id)
+
+      %URI{scheme: "https", host: host, path: "/watch", query: query}
+      when host in ["youtube.com", "www.youtube.com", "music.youtube.com"] and is_binary(query) ->
+        query |> URI.decode_query() |> Map.get("v") |> youtube()
 
       _ ->
         {:error, :unsupported_url}
     end
   end
+
+  defp youtube(id) when is_binary(id) do
+    if Regex.match?(@youtube_id, id), do: {:ok, :youtube, id}, else: {:error, :invalid_url}
+  end
+
+  defp youtube(_), do: {:error, :invalid_url}
 
   defp duration_seconds(duration) do
     case Regex.named_captures(@duration, duration) do
