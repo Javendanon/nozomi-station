@@ -27,14 +27,24 @@ export const RadioPlayer = {
     this.audio = this.el.querySelector("#live-audio")
     this.button = this.el.querySelector("#join-live")
     this.status = this.el.querySelector("#stream-status")
-    this.onPlaying = () => this.status.textContent = "En vivo"
+    this.connected = false
+    this.connecting = false
+    this.onPlaying = () => {
+      this.connected = true
+      this.connecting = false
+      this.status.textContent = "En vivo"
+    }
     this.onJoin = async () => {
+      if (this.connected || this.connecting) return
+
+      this.connecting = true
       this.status.textContent = "Conectando"
       this.hls?.destroy()
 
       try {
         this.hls = await connectToLiveStream(this.audio, this.el.dataset.stream)
       } catch (_error) {
+        this.connecting = false
         this.status.textContent = "Emisión no disponible"
       }
     }
