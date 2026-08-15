@@ -3,7 +3,7 @@ active_flow: build_epic
 active_epic: e01
 active_story: e01s01
 epic_cycle:
-  step: 5
+  step: 6
   story_bcps: 8
   completed_steps:
     - 0
@@ -11,11 +11,12 @@ epic_cycle:
     - 2
     - 3
     - 4
+    - 5
 git:
   branch: feat/e01-live-broadcast
   base: main
 metrics:
   story_start: "2026-08-15T01:02:51-04:00"
 handoff:
-  next_skill: verify-work
-  context: All e01s01 task checks pass; run the full UAT and mechanical verification gate.
+  next_skill: audit-code
+  context: Automated verification and all three manual UAT steps passed with no gaps.

@@ -1,0 +1,63 @@
+story_id: e01s01
+verified_at: "2026-08-15T01:42:35-04:00"
+verifier: verify-work
+risk: P0
+phases:
+  task_commands:
+    passed: true
+    count: 4
+  smoke:
+    passed: true
+    command: cold start Liquidsoap and Phoenix, then curl / and /hls/live.m3u8
+    url: http://localhost:4000
+  build:
+    passed: true
+    command: mix compile --warnings-as-errors && mix assets.deploy
+  typecheck:
+    passed: true
+    command: mix compile --warnings-as-errors
+  lint:
+    passed: true
+    command: mix format --check-formatted
+  tests:
+    passed: true
+    elixir: 6 tests, 0 failures
+    javascript: 2 tests, 0 failures
+  dependencies:
+    passed: true
+    command: npm audit --prefix assets --omit=dev
+    result: 0 vulnerabilities
+  terminal_verdict:
+    command: mix precommit
+    exit_code: 0
+    captured_at: "2026-08-15T01:41:00-04:00"
+    note: Single contiguous run; 6 tests, 0 failures.
+  security:
+    passed: true
+    report: specs/security/REVIEW.md
+    high_findings: 0
+  blind_spots:
+    passed: true
+    note: Project scripts are not installed; manual check found no HIGH gap. Real-browser clock sampling remains a documented upgrade path.
+  completeness:
+    passed: true
+    note: Automated acceptance paths are covered; browser audio requires user UAT.
+  manual:
+    passed: true
+    status: confirmed
+    steps:
+      - step: Open http://localhost:4000
+        expected: Radio page shows «Subir al tren» and «Conectando».
+        actual: User confirmed both are visible.
+        passed: true
+      - step: Press «Subir al tren»
+        expected: A 440 Hz test tone plays and status changes to «En vivo».
+        actual: User confirmed the tone and live status.
+        passed: true
+      - step: Repeat in a second browser window
+        expected: Both windows play from the shared live edge without an obvious delay greater than 2 seconds.
+        actual: User confirmed both windows sound synchronized within the expected tolerance.
+        passed: true
+  gaps:
+    closed: true
+    note: No acceptance gaps remain.
