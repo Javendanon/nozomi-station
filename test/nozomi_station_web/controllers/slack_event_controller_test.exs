@@ -28,6 +28,11 @@ defmodule NozomiStationWeb.SlackEventControllerTest do
     assert [_job] = all_enqueued(worker: RequestWorker)
   end
 
+  test "rejects a signed unsupported payload", %{conn: conn} do
+    conn = signed_post(conn, Jason.encode!(%{type: "unsupported"}))
+    assert response(conn, 400)
+  end
+
   test "rejects an invalid Slack signature", %{conn: conn} do
     body = Jason.encode!(%{type: "url_verification", challenge: "ready"})
 

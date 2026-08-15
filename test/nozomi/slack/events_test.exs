@@ -16,6 +16,7 @@ defmodule NozomiStation.Slack.EventsTest do
     refute Signature.valid?(@body, @timestamp, @signature, @secret, 1_700_000_301)
     refute Signature.valid?(@body <> " ", @timestamp, @signature, @secret, 1_700_000_100)
     refute Signature.valid?(@body, "invalid", @signature, @secret, 1_700_000_100)
+    refute Signature.valid?(nil, @timestamp, @signature, @secret, 1_700_000_100)
   end
 
   test "persists an event_id once" do

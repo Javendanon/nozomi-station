@@ -14,6 +14,11 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
     assert options[:url] == "https://slack.com/api/chat.postMessage"
     assert options[:redirect] == false
     assert options[:json] == %{channel: "C01", thread_ts: "123.45", text: "Aceptada"}
+
+    assert {:error, :slack_unavailable} =
+             Client.reply("C01", "123.45", "Aceptada", fn _options ->
+               {:ok, %Req.Response{status: 500, body: %{}}}
+             end)
   end
 
   test "processes message links in order and confirms each request in its thread" do
@@ -65,6 +70,55 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
 
     assert_received {:reply, "C01", "123.45", "Aceptada: one · posición 1"}
     assert_received {:reply, "C01", "123.45", "Aceptada: two · posición 2"}
+  end
+
+  test "discards a job whose persisted event is missing" do
+    job = %Oban.Job{args: %{"event_id" => "missing"}}
+    assert {:discard, :event_not_found} = RequestWorker.perform(job, [])
+  end
+
+  test "returns transient provider failures for Oban to retry" do
+    payload = %{
+      "event_id" => "Ev-transient",
+      "event" => %{
+        "type" => "message",
+        "channel" => "C01",
+        "user" => "U01",
+        "ts" => "400.00",
+        "text" => "https://youtu.be/retry"
+      }
+    }
+
+    assert {:ok, _event} = EventStore.insert(payload)
+
+    deps = [
+      channel: "C01",
+      resolver: fn _url -> {:error, :provider_unavailable} end,
+      prepare: fn _, _ -> flunk("transient resolver result reached preparation") end,
+      reply: fn _, _, _ -> flunk("transient resolver result reached Slack") end
+    ]
+
+    job = %Oban.Job{args: %{"event_id" => "Ev-transient"}}
+    assert {:error, :provider_unavailable} = RequestWorker.perform(job, deps)
+  end
+
+  test "ignores messages outside the configured channel" do
+    payload = %{
+      "event_id" => "Ev-other-channel",
+      "event" => %{"type" => "message", "channel" => "C02", "text" => nil}
+    }
+
+    assert {:ok, _event} = EventStore.insert(payload)
+
+    deps = [
+      channel: "C01",
+      resolver: fn _ -> flunk("ignored event reached resolver") end,
+      prepare: fn _, _ -> flunk("ignored event reached preparation") end,
+      reply: fn _, _, _ -> flunk("ignored event reached Slack") end
+    ]
+
+    job = %Oban.Job{args: %{"event_id" => "Ev-other-channel"}}
+    assert :ok = RequestWorker.perform(job, deps)
   end
 
   test "reports a permanent rejection and continues with later links" do

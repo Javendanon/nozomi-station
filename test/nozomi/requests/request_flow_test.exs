@@ -58,6 +58,15 @@ defmodule NozomiStation.Requests.RequestFlowTest do
     assert request.status == "ready"
   end
 
+  test "returns validation errors for incomplete request metadata" do
+    requester = %{slack_user: "U01", slack_channel: "C01", thread_ts: "345.00"}
+
+    assert {:error, changeset} =
+             RequestFlow.prepare(%{youtube_id: "incomplete"}, requester, fn _, _ -> {"", 1} end)
+
+    refute changeset.valid?
+  end
+
   test "does not queue a downloader success without an output file" do
     track = %{
       youtube_id: "missing_file",

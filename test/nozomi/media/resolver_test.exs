@@ -75,6 +75,9 @@ defmodule NozomiStation.Media.ResolverTest do
 
     assert {:error, :unsupported_url} = Resolver.resolve("http://youtu.be/video", refute_fetch)
 
+    assert {:error, :invalid_url} =
+             Resolver.resolve("https://www.youtube.com/watch?feature=share", refute_fetch)
+
     assert {:error, :not_playable} =
              Resolver.resolve("https://youtu.be/live", fn _, _ ->
                {:ok, %{duration: "PT1M", live?: true}}
@@ -83,6 +86,11 @@ defmodule NozomiStation.Media.ResolverTest do
     assert {:error, :not_playable} =
              Resolver.resolve("https://youtu.be/long", fn _, _ ->
                {:ok, %{duration: "PT15M1S", live?: false}}
+             end)
+
+    assert {:error, :invalid_duration} =
+             Resolver.resolve("https://youtu.be/malformed", fn _, _ ->
+               {:ok, %{duration: "three minutes", live?: false}}
              end)
   end
 
@@ -116,6 +124,11 @@ defmodule NozomiStation.Media.ResolverTest do
     assert options[:url] == "https://www.googleapis.com/youtube/v3/videos"
     assert options[:redirect] == false
     assert options[:params][:id] == "video_123"
+
+    assert {:error, :provider_unavailable} =
+             ProviderClient.fetch(:youtube_search, "missing", fn _options ->
+               {:ok, %Req.Response{status: 200, body: %{"items" => []}}}
+             end)
   end
 
   test "uses fixed Spotify and YouTube endpoints to pair a track" do
