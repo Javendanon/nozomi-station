@@ -22,7 +22,7 @@ tasks:
     security_verify: no new security findings in affected paths
     risk: P0
     security: high
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
