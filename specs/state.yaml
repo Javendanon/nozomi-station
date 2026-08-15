@@ -3,7 +3,7 @@ active_flow: build_epic
 active_epic: e01
 active_story: e01s01
 epic_cycle:
-  step: 4
+  step: 5
   story_bcps: 8
   audit_result: fail
   completed_steps:
@@ -14,11 +14,12 @@ epic_cycle:
     - 4
     - 5
     - "6(fail: provenance,test-coverage,FIRST)"
+    - "4(audit-fixes)"
 git:
   branch: feat/e01-live-broadcast
   base: main
 metrics:
   story_start: "2026-08-15T01:02:51-04:00"
 handoff:
-  next_skill: develop-tdd
-  context: Fix three audit findings: story metadata, full-window continuity check, and RadioPlayer hook lifecycle coverage.
+  next_skill: verify-work
+  context: Audit fixes implemented; rerun verification before the audit gate.
