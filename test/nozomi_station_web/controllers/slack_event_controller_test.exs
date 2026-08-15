@@ -1,6 +1,8 @@
 defmodule NozomiStationWeb.SlackEventControllerTest do
   use NozomiStationWeb.ConnCase, async: true
 
+  alias NozomiStation.Slack.RequestWorker
+
   @secret "test-signing-secret"
 
   test "returns a challenge only for a signed current request", %{conn: conn} do
@@ -9,6 +11,21 @@ defmodule NozomiStationWeb.SlackEventControllerTest do
     conn = signed_post(conn, body)
 
     assert json_response(conn, 200) == %{"challenge" => "ready"}
+  end
+
+  test "persists and enqueues an event callback once", %{conn: conn} do
+    body =
+      Jason.encode!(%{
+        type: "event_callback",
+        event_id: "Ev-controller",
+        event: %{type: "message", text: "https://youtu.be/track"}
+      })
+
+    assert signed_post(conn, body).status == 202
+    assert_enqueued(worker: RequestWorker, args: %{"event_id" => "Ev-controller"})
+
+    assert signed_post(build_conn(), body).status == 202
+    assert [_job] = all_enqueued(worker: RequestWorker)
   end
 
   test "rejects an invalid Slack signature", %{conn: conn} do
