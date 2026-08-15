@@ -117,4 +117,49 @@ defmodule NozomiStation.Media.ResolverTest do
     assert options[:redirect] == false
     assert options[:params][:id] == "video_123"
   end
+
+  test "uses fixed Spotify and YouTube endpoints to pair a track" do
+    request = fn options ->
+      send(self(), {:provider_url, options[:url]})
+
+      response =
+        case options[:url] do
+          "https://accounts.spotify.com/api/token" ->
+            %{"access_token" => "access-token"}
+
+          "https://api.spotify.com/v1/tracks/spotify789" ->
+            %{"name" => "Shinkansen", "artists" => [%{"name" => "Hikari"}]}
+
+          "https://www.googleapis.com/youtube/v3/search" ->
+            %{"items" => [%{"id" => %{"videoId" => "youtube_match"}}]}
+
+          "https://www.googleapis.com/youtube/v3/videos" ->
+            %{
+              "items" => [
+                %{
+                  "id" => "youtube_match",
+                  "contentDetails" => %{"duration" => "PT5M1S"},
+                  "snippet" => %{
+                    "title" => "Shinkansen",
+                    "channelTitle" => "Hikari",
+                    "liveBroadcastContent" => "none"
+                  }
+                }
+              ]
+            }
+        end
+
+      {:ok, %Req.Response{status: 200, body: response}}
+    end
+
+    fetch = fn provider, value -> ProviderClient.fetch(provider, value, request) end
+
+    assert {:ok, %{youtube_id: "youtube_match"}} =
+             Resolver.resolve("https://open.spotify.com/track/spotify789", fetch)
+
+    assert_received {:provider_url, "https://accounts.spotify.com/api/token"}
+    assert_received {:provider_url, "https://api.spotify.com/v1/tracks/spotify789"}
+    assert_received {:provider_url, "https://www.googleapis.com/youtube/v3/search"}
+    assert_received {:provider_url, "https://www.googleapis.com/youtube/v3/videos"}
+  end
 end
