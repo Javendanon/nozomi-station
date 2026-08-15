@@ -1,7 +1,20 @@
 defmodule NozomiStation.Slack.RequestWorkerTest do
   use NozomiStation.DataCase, async: true
 
-  alias NozomiStation.Slack.{EventStore, RequestWorker}
+  alias NozomiStation.Slack.{Client, EventStore, RequestWorker}
+
+  test "posts thread replies only to Slack's fixed API host" do
+    request = fn options ->
+      send(self(), {:slack_request, options})
+      {:ok, %Req.Response{status: 200, body: %{"ok" => true}}}
+    end
+
+    assert :ok = Client.reply("C01", "123.45", "Aceptada", request)
+    assert_receive {:slack_request, options}
+    assert options[:url] == "https://slack.com/api/chat.postMessage"
+    assert options[:redirect] == false
+    assert options[:json] == %{channel: "C01", thread_ts: "123.45", text: "Aceptada"}
+  end
 
   test "processes message links in order and confirms each request in its thread" do
     payload = %{
