@@ -54,10 +54,10 @@ test("uses hls.js at the live edge when native HLS is unavailable", async () => 
   assert.equal(element.played, true)
 })
 
-test("releases player resources when reconnecting and unmounting", async () => {
+test("keeps live playback on repeated joins and releases it when unmounting", async () => {
   const button = eventTarget({})
   const streamAudio = eventTarget(audio(true))
-  const status = {textContent: ""}
+  const status = {textContent: "En vivo"}
   const elements = {"#join-live": button, "#live-audio": streamAudio, "#stream-status": status}
   const hook = {
     ...RadioPlayer,
@@ -66,12 +66,15 @@ test("releases player resources when reconnecting and unmounting", async () => {
   let destroyed = 0
 
   hook.mounted()
+  hook.connected = true
   hook.hls = {destroy: () => destroyed++}
   await button.trigger("click")
 
-  assert.equal(destroyed, 1)
+  assert.equal(destroyed, 0)
+  assert.equal(status.textContent, "En vivo")
   assert.equal(button.listensTo("click"), true)
   hook.destroyed()
+  assert.equal(destroyed, 1)
   assert.equal(button.listensTo("click"), false)
   assert.equal(streamAudio.listensTo("playing"), false)
 })
