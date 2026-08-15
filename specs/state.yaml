@@ -1,34 +1,20 @@
 project: Nozomi Station
-active_flow: null
-active_epic: null
-active_story: null
+active_flow: build_epic
+active_epic: e05
+active_story: e05s01
 epic_cycle:
-  step: 8
+  step: 3
   story_bcps: 8
-  audit_result: pass
   completed_steps:
     - 0
     - 1
     - 2
-    - 3
-    - 4
-    - "5(pass)"
-    - "6(pass)"
-    - 7
-    - 8
 git:
   branch: main
   base: main
 metrics:
-  story_start: "2026-08-15T03:50:11-04:00"
-release:
-  pr: 3
-  url: https://github.com/Javendanon/nozomi-station/pull/3
-  merge_commit: 2d44811721d8e684d2e68993dec54763d15c8c1a
-  merged_at: "2026-08-15T09:17:30Z"
-  ci_verified: true
-  ci_run: https://github.com/Javendanon/nozomi-station/actions/runs/31876621482
-  registry: not_applicable
+  story_start: "2026-08-15T23:52:19Z"
+release: null
 handoff:
-  next_skill: survey-context
-  context: e03s01 released and verified on main; e05 live-player experience is next by WSJF.
+  next_skill: kickoff-branch
+  context: e05s01 planned; medium impact 7/10; no new dependencies; start isolated branch and baseline.

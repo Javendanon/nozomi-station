@@ -1,17 +1,38 @@
 story_id: e05s01
 title: Subir al tren y ver la canción actual
-status: todo
+status: failing
 bcps: 8
 tasks:
   - id: 1
-    description: Implementar entrada en vivo y estado de canción en LiveView.
-    verify: mix test test/nozomi_web/live/radio_live_test.exs
-    status: todo
+    description: Detectar la solicitud activa de Liquidsoap y publicar una única ficha now-playing por Phoenix PubSub.
+    verify: mix test test/nozomi/programming/liquidsoap_client_test.exs test/nozomi/programming/now_playing_test.exs
+    risk: P0
+    security: medium
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - Liquidsoap
+        - Security Review
   - id: 2
-    description: Añadir video, paleta y onda respetando movimiento reducido.
-    verify: npm test -- --runInBand assets/js/radio_player.test.js
-    status: todo
+    description: Enriquecer la ficha con track.getInfo sin red en tests y aceptar solo portadas HTTPS del CDN de Last.fm.
+    verify: mix test test/nozomi/programming/lastfm_test.exs
+    risk: P1
+    security: medium
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - Last.fm
+        - Security Review
   - id: 3
-    description: Mostrar metadatos y ocultar secciones ausentes.
-    verify: mix test test/nozomi_web/live/now_playing_test.exs
-    status: todo
+    description: Mostrar pista, datos opcionales, escena provisional y onda accesible sin alterar el audio HLS.
+    verify: mix test test/nozomi_station_web/live/radio_live_test.exs && npm --prefix assets test -- js/radio_player.test.mjs
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - LiveView
+        - Accessibility

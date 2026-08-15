@@ -2,11 +2,11 @@ id: e05
 title: Experiencia del reproductor
 wsjf: 3.0
 total_bcps: 8
-status: todo
+status: in_progress
 stories:
   - id: e05s01
     title: Subir al tren y ver la canción actual
     bcps: 8
-    status: todo
+    status: in_progress
     spec: e05s01-live-player.md
     tasks: e05s01-tasks.yaml

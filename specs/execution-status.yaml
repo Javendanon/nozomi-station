@@ -14,7 +14,8 @@ stories:
   e04s01:
     status: todo
   e05s01:
-    status: todo
+    status: in_progress
+    started_at: "2026-08-15T23:52:19Z"
   e06s01:
     status: todo
   e07s01:
