@@ -1,7 +1,7 @@
 project: Nozomi Station
-active_flow: build_epic
-active_epic: e03
-active_story: e03s01
+active_flow: null
+active_epic: null
+active_story: null
 epic_cycle:
   step: 8
   story_bcps: 8
@@ -15,12 +15,20 @@ epic_cycle:
     - "5(pass)"
     - "6(pass)"
     - 7
+    - 8
 git:
-  branch: feat/e03-complementary-programming
+  branch: main
   base: main
 metrics:
   story_start: "2026-08-15T03:50:11-04:00"
-release: null
+release:
+  pr: 3
+  url: https://github.com/Javendanon/nozomi-station/pull/3
+  merge_commit: 2d44811721d8e684d2e68993dec54763d15c8c1a
+  merged_at: "2026-08-15T09:17:30Z"
+  ci_verified: true
+  ci_run: https://github.com/Javendanon/nozomi-station/actions/runs/31876621482
+  registry: not_applicable
 handoff:
-  next_skill: release-branch
-  context: "PR #3 now resolves YouTube through yt-dlp with a local ignored cookie jar; rerun security, audit, CI, then wait for explicit user approval before merge."
+  next_skill: survey-context
+  context: e03s01 released and verified on main; e05 live-player experience is next by WSJF.

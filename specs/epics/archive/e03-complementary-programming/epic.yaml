@@ -2,11 +2,11 @@ id: e03
 title: Programación complementaria
 wsjf: 3.5
 total_bcps: 8
-status: in_progress
+status: done
 stories:
   - id: e03s01
     title: Mantener música sin solicitudes
     bcps: 8
-    status: in_progress
+    status: done
     spec: e03s01-complementary-programming.md
     tasks: e03s01-tasks.yaml

@@ -18,7 +18,7 @@ epics:
     bcps: 8
   - id: e03
     title: Programación complementaria
-    capsule_dir: epics/e03-complementary-programming
+    capsule_dir: epics/archive/e03-complementary-programming
     wsjf: 3.5
     bcps: 8
   - id: e05

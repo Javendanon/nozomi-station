@@ -1,20 +1,20 @@
 story_id: e03s01
 title: Mantener música sin solicitudes
-status: in_progress
+status: done
 bcps: 8
 tasks:
   - id: 1
     description: Persistir pistas complementarias y rellenar un margen de diez con semillas o candidatas de mood.
     verify: mix test test/nozomi/programming/complementary_queue_test.exs
     bcps: 3
-    status: passing
+    status: done
   - id: 2
     description: Derivar mood solo de las últimas veinte solicitudes reproducibles y no saltadas.
     verify: mix test test/nozomi/programming/mood_test.exs
     bcps: 2
-    status: passing
+    status: done
   - id: 3
     description: Entregar solicitudes y pistas complementarias a colas prioritarias de Liquidsoap ligadas a loopback.
     verify: mix test test/nozomi/programming/scheduler_test.exs && bash scripts/verify-programming-priority.sh
     bcps: 3
-    status: passing
+    status: done
