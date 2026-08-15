@@ -40,6 +40,7 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: assets/package-lock.json
+      - run: sudo apt-get update && sudo apt-get install --yes ffmpeg
       - run: mix deps.get
       - run: npm ci --prefix assets
       - run: bash scripts/verify-liquidsoap-hls.sh
