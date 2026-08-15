@@ -83,6 +83,12 @@ defmodule NozomiStation.Programming.SchedulerTest do
 
     refute_received {:command, "requested.push /host/secret"}
 
+    assert {:error, :invalid_media_path} =
+             LiquidsoapClient.push(:requested, "/host/media/17.m4a\nrequested.skip", command,
+               media_dir: "/host/media",
+               liquidsoap_media_dir: "/media"
+             )
+
     assert {:error, :invalid_control_response} =
              LiquidsoapClient.push(:requested, "/host/media/empty.m4a", fn _ -> {:ok, []} end,
                media_dir: "/host/media",

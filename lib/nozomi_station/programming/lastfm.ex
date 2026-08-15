@@ -43,17 +43,21 @@ defmodule NozomiStation.Programming.Lastfm do
     end
   end
 
-  defp tracks(%{"tracks" => %{"track" => tracks}}), do: Enum.map(tracks, &candidate/1)
-  defp tracks(%{"similartracks" => %{"track" => tracks}}), do: Enum.map(tracks, &candidate/1)
+  defp tracks(%{"tracks" => %{"track" => tracks}}), do: Enum.flat_map(tracks, &candidate/1)
+  defp tracks(%{"similartracks" => %{"track" => tracks}}), do: Enum.flat_map(tracks, &candidate/1)
   defp tracks(_), do: []
 
-  defp candidate(%{"name" => title, "artist" => %{"name" => artist}}) do
-    %{title: title, artist: artist}
+  defp candidate(%{"name" => title, "artist" => %{"name" => artist}})
+       when is_binary(title) and is_binary(artist) do
+    [%{title: title, artist: artist}]
   end
 
-  defp candidate(%{"name" => title, "artist" => artist}) when is_binary(artist) do
-    %{title: title, artist: artist}
+  defp candidate(%{"name" => title, "artist" => artist})
+       when is_binary(title) and is_binary(artist) do
+    [%{title: title, artist: artist}]
   end
+
+  defp candidate(_), do: []
 
   defp unique(tracks, limit) do
     tracks

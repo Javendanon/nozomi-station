@@ -37,7 +37,6 @@ defmodule NozomiStation.Programming.LiquidsoapClient do
     with true <- id =~ ~r/^\d+$/,
          {:ok, metadata} <- command.("request.metadata #{id}"),
          false <- metadata == ["No such request."],
-         true <- ~s(status="ready") in metadata,
          line when is_binary(line) <- Enum.find(metadata, &String.starts_with?(&1, "filename=")),
          [_, path] <- Regex.run(~r/^filename="([^"]+)"$/, line) do
       from_liquidsoap_path(path, options)
@@ -108,7 +107,7 @@ defmodule NozomiStation.Programming.LiquidsoapClient do
     relative = Path.relative_to(path, source_root)
 
     if Path.type(relative) != :relative or relative == ".." or
-         String.starts_with?(relative, "../") do
+         String.starts_with?(relative, "../") or relative =~ ~r/\s/ do
       {:error, :invalid_media_path}
     else
       {:ok, Path.join(target_root, relative)}

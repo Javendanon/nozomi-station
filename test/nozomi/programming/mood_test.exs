@@ -58,6 +58,23 @@ defmodule NozomiStation.Programming.MoodTest do
     refute Keyword.has_key?(second, :tag)
   end
 
+  test "discards malformed candidate entries from external responses" do
+    request = fn _options ->
+      {:ok,
+       %Req.Response{
+         status: 200,
+         body: %{
+           "similartracks" => %{
+             "track" => [%{"unexpected" => true}, %{"name" => "Valid", "artist" => "Artist"}]
+           }
+         }
+       }}
+    end
+
+    assert {:ok, [%{title: "Valid", artist: "Artist"}]} =
+             Lastfm.candidates([%{title: "Source", artist: "Artist"}], 2, request)
+  end
+
   defp insert_request(index, status) do
     attrs = %{
       youtube_id: "mood-#{index}",
