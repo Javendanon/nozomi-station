@@ -28,7 +28,7 @@ defmodule NozomiStationWeb.RadioLive do
             id="join-live"
             type="button"
             aria-label="Subir al tren y escuchar en vivo"
-            class="rounded-full bg-zinc-950 px-6 py-3 font-semibold text-white transition hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
+            class="rounded-full bg-zinc-950 px-6 py-3 font-semibold text-white transition hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-default disabled:bg-zinc-700"
           >
             Subir al tren
           </button>

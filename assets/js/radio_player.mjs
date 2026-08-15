@@ -38,6 +38,7 @@ export const RadioPlayer = {
   markLive() {
     this.connected = true
     this.connecting = false
+    this.button.disabled = true
     this.status.textContent = "En vivo"
   },
 
