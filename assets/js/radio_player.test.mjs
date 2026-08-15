@@ -37,6 +37,7 @@ test("uses hls.js at the live edge when native HLS is unavailable", async () => 
 
   assert.equal(hls.source, "/hls/live.m3u8")
   assert.equal(hls.element, element)
-  assert.equal(hls.config.liveSyncDurationCount, 1)
+  assert.equal(hls.config.liveSyncDuration, 1)
+  assert.equal(hls.config.liveMaxLatencyDuration, 2)
   assert.equal(element.played, true)
 })
