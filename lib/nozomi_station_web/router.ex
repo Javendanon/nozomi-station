@@ -14,14 +14,19 @@ defmodule NozomiStationWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :slack do
+    plug NozomiStationWeb.Plugs.VerifySlackSignature
+  end
+
   scope "/", NozomiStationWeb do
     pipe_through :browser
 
     live "/", RadioLive
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", NozomiStationWeb do
-  #   pipe_through :api
-  # end
+  scope "/slack", NozomiStationWeb do
+    pipe_through [:api, :slack]
+
+    post "/events", SlackEventController, :create
+  end
 end

@@ -1,0 +1,71 @@
+story_id: e02s01
+verified_at: "2026-08-15T03:30:35-04:00"
+verifier: verify-work
+risk: P0
+phases:
+  smoke:
+    passed: true
+    command: PORT=4102 PHX_SERVER=true MIX_ENV=test mix phx.server
+    evidence: Fresh server accepted two signed deliveries; PostgreSQL contained one event and one Oban job.
+  build:
+    passed: true
+    command: mix compile --warnings-as-errors
+  tests:
+    passed: true
+    elixir: 31 tests, 0 failures
+    javascript: 3 tests, 0 failures
+    coverage: 90.45% product modules
+  terminal_verdict:
+    command: mix precommit
+    exit_code: 0
+    captured_at: "2026-08-15T03:31:29-04:00"
+    note: Single contiguous run; 31 tests passed.
+  task_verification:
+    - task: signed event ingestion
+      passed: true
+      command: mix test test/nozomi/slack/events_test.exs test/nozomi_station_web/controllers/slack_event_controller_test.exs
+    - task: provider resolution
+      passed: true
+      command: mix test test/nozomi/media/resolver_test.exs
+    - task: preparation and FIFO queue
+      passed: true
+      command: mix test test/nozomi/requests/request_flow_test.exs
+    - task: Oban request workflow
+      passed: true
+      command: mix test test/nozomi/slack/request_worker_test.exs
+    - task: broadcast regression
+      passed: true
+      command: bash scripts/verify-liquidsoap-hls.sh && bash scripts/verify-hls-sync.sh
+  security:
+    passed: true
+    report: specs/security/REVIEW.md
+    high_findings: 0
+    dependency_audit: npm 0 vulnerabilities; Hex 0 retired packages
+  nfr:
+    passed: true
+    report: specs/verifications/NFR-e02s01.json
+  uat:
+    automated: true
+    steps:
+      - step: Boot Phoenix and PostgreSQL from stopped state.
+        expected: Endpoint becomes reachable.
+        actual: Endpoint served requests on port 4102.
+        passed: true
+      - step: Deliver one current HMAC-signed Slack event twice.
+        expected: Both acknowledgements finish under three seconds.
+        actual: HTTP 202 in 0.042456s and 0.004071s.
+        passed: true
+      - step: Inspect persistent event and job counts.
+        expected: Duplicate delivery creates no duplicate work.
+        actual: One slack_events row and one oban_jobs row.
+        passed: true
+      - step: Exercise provider, preparation, rejection, retry, and Slack reply boundaries.
+        expected: Deterministic processing without live credentials.
+        actual: All boundary tests passed; real credential smoke remains explicitly deferred by the story.
+        passed: true
+  structural_checks:
+    blind_spot_check: skipped; scripts/check-blind-spots.sh is not present
+    completeness_critic: skipped; scripts/lib/completeness-critic.sh is not present
+  gaps:
+    closed: true
+    count: 0

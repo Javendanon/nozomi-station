@@ -1,37 +1,56 @@
-# Security review: e01s01
+# Security review: e02s01 Slack requests
 
 ## Scope
 
-Diff `main...feat/e01-live-broadcast`: Phoenix LiveView entry page, hls.js hook, Liquidsoap HLS container, and verification scripts.
+Full `main...HEAD` branch diff covering the Slack webhook, signature verification, PostgreSQL event/request persistence, Oban worker, Spotify/YouTube clients, `yt-dlp` preparation, runtime configuration, and CI.
 
-## Result
+## Verdict
 
-**PASS — no findings with confidence ≥ 8/10.**
+**PASS** — no unresolved HIGH findings with confidence 8 or greater.
 
-## Data-flow checks
+## Trust-boundary review
 
-- Browser input does not control the HLS URL, filesystem paths, or process arguments.
-- LiveView renders no unescaped external content.
-- The player does not use `innerHTML`, `eval`, or dynamic script construction.
-- Liquidsoap publishes no ports and runs as UID 100, not root.
-- Liquidsoap writes only to the dedicated `priv/static/hls` volume.
-- Shell scripts use fixed project-owned commands and do not interpolate untrusted input.
-- npm audit reports zero production vulnerabilities.
+### Slack webhook
 
-## Threat-model controls
+- Signature uses HMAC-SHA256 over the exact raw body and Slack timestamp.
+- Constant-time comparison is used after a length check.
+- Requests older or newer than five minutes are rejected.
+- Missing headers or signing secret fail closed.
+- A unique PostgreSQL constraint and one transaction prevent duplicate events or orphaned jobs.
 
-| Threat | Evidence | Status |
-|--------|----------|--------|
-| T1 public Liquidsoap controls | `docker compose config` contains no published ports | PASS |
-| T2 command injection | No shell invocation from application or media configuration | PASS |
-| T3 path traversal | No client-supplied media paths exist in this story | PASS |
-| T4 metadata XSS | No external metadata or unsafe DOM sink exists | PASS |
-| T5 decoder isolation | Container runs as `100:101` with one writable HLS mount | PASS |
+### External HTTP
 
-## Verification
+- User URLs are parsed into validated provider identifiers.
+- Req calls use fixed Slack, Spotify, and Google API hosts.
+- Redirect following is disabled.
+- Request timeouts are bounded.
+- Provider credentials come from runtime environment variables and are not logged.
 
-```bash
-docker compose config --format json | python3 -c 'import json,sys; s=json.load(sys.stdin)["services"]["liquidsoap"]; assert not s.get("ports") and s["user"] != "0"'
-! rg -n 'innerHTML|eval\(|sh -c|system\(' assets/js/radio_player.mjs config/liquidsoap compose.yaml
-npm audit --prefix assets --omit=dev
-```
+### Process and filesystem
+
+- `yt-dlp` receives an argument vector through `System.cmd`; no shell evaluates user input.
+- Output paths derive only from database integer IDs.
+- A request becomes ready only when the expected file exists.
+- Media execution is bounded to 120 seconds and failures release the active duplicate guard.
+
+### Data and persistence
+
+- Ecto queries are parameterized; no raw SQL contains attacker input.
+- Event payloads are stored as JSON maps, not deserialized executable terms.
+- Active duplicate exclusion is enforced with a partial unique database index.
+
+## Automated evidence
+
+- `npm audit --omit=dev`: zero vulnerabilities.
+- `mix hex.audit`: no retired packages.
+- Secret-pattern and unsafe-sink scan: clean.
+- 31 Elixir tests and 3 JavaScript tests pass.
+- Product-module line coverage: 90.45%.
+- Signed cold-start UAT: duplicate deliveries produced one event and one Oban job; acknowledgements completed in 0.043 seconds or less.
+
+## Residual risks
+
+- Real Slack, Spotify, YouTube, and `yt-dlp` smoke testing requires credentials and a permitted media source. Tests use deterministic boundary fakes.
+- Downloading and retransmitting third-party media retains the licensing and terms-of-service risk accepted in product scope.
+
+Neither residual item is an exploitable code vulnerability. No security exception is required.

@@ -1,5 +1,21 @@
 import Config
 
+config :nozomi_station,
+  slack_signing_secret: System.get_env("SLACK_SIGNING_SECRET"),
+  slack_bot_token: System.get_env("SLACK_BOT_TOKEN"),
+  slack_channel_id: System.get_env("SLACK_CHANNEL_ID"),
+  spotify_client_id: System.get_env("SPOTIFY_CLIENT_ID"),
+  spotify_client_secret: System.get_env("SPOTIFY_CLIENT_SECRET"),
+  youtube_api_key: System.get_env("YOUTUBE_API_KEY")
+
+config :nozomi_station, NozomiStation.Repo,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "nozomi_station_dev",
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

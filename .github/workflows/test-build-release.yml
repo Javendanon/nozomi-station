@@ -32,6 +32,8 @@ jobs:
           cache-dependency-path: assets/package-lock.json
       - run: mix deps.get
       - run: npm ci --prefix assets
+      - run: docker compose up -d --wait postgres
+      - run: MIX_ENV=test mix ecto.setup
       - run: mix precommit
       - run: mix test --cover
       - run: npm --prefix assets test -- js/radio_player.test.mjs

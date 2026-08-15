@@ -1,5 +1,21 @@
 import Config
 
+config :nozomi_station, NozomiStation.Repo,
+  username: "postgres",
+  password: "postgres",
+  hostname: System.get_env("POSTGRES_HOST", "localhost"),
+  database: "nozomi_station_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: System.schedulers_online() * 2
+
+config :nozomi_station, Oban, testing: :manual
+config :nozomi_station, :slack_signing_secret, "test-signing-secret"
+config :nozomi_station, :slack_bot_token, "test-bot-token"
+config :nozomi_station, :slack_channel_id, "C01"
+config :nozomi_station, :youtube_api_key, "test-youtube-key"
+config :nozomi_station, :spotify_client_id, "test-spotify-id"
+config :nozomi_station, :spotify_client_secret, "test-spotify-secret"
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :nozomi_station, NozomiStationWeb.Endpoint,

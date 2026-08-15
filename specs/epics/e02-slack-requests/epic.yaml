@@ -2,11 +2,13 @@ id: e02
 title: Solicitudes automáticas desde Slack
 wsjf: 3.7
 total_bcps: 8
-status: todo
+status: in_progress
 stories:
   - id: e02s01
     title: Solicitar canciones desde Slack
     bcps: 8
-    status: todo
+    risk: P0
+    delta: ADDED
+    status: in_progress
     spec: e02s01-slack-requests.md
     tasks: e02s01-tasks.yaml
