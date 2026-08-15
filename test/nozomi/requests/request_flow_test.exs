@@ -32,4 +32,29 @@ defmodule NozomiStation.Requests.RequestFlowTest do
 
     assert {:error, :duplicate} = RequestFlow.prepare(track, requester, runner)
   end
+
+  test "releases the duplicate guard after preparation fails" do
+    track = %{
+      youtube_id: "retry_456",
+      title: "Retry Express",
+      artist: "Nozomi",
+      duration_seconds: 180
+    }
+
+    requester = %{slack_user: "U02", slack_channel: "C01", thread_ts: "234.56"}
+    failed_runner = fn "yt-dlp", _args -> {"failed", 1} end
+
+    assert {:error, :preparation_failed} = RequestFlow.prepare(track, requester, failed_runner)
+
+    successful_runner = fn "yt-dlp", args ->
+      output = Enum.at(args, Enum.find_index(args, &(&1 == "--output")) + 1)
+      path = String.replace(output, ".%(ext)s", ".m4a")
+      File.mkdir_p!(Path.dirname(path))
+      File.write!(path, "prepared")
+      {"", 0}
+    end
+
+    assert {:ok, request, 1} = RequestFlow.prepare(track, requester, successful_runner)
+    assert request.status == "ready"
+  end
 end
