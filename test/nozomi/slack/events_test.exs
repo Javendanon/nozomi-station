@@ -1,7 +1,7 @@
 defmodule NozomiStation.Slack.EventsTest do
-  use ExUnit.Case, async: true
+  use NozomiStation.DataCase, async: true
 
-  alias NozomiStation.Slack.{Events, Signature}
+  alias NozomiStation.Slack.{EventStore, Events, Signature}
 
   @body ~s({"type":"event_callback","event_id":"Ev01"})
   @secret "test-signing-secret"
@@ -16,6 +16,15 @@ defmodule NozomiStation.Slack.EventsTest do
     refute Signature.valid?(@body, @timestamp, @signature, @secret, 1_700_000_301)
     refute Signature.valid?(@body <> " ", @timestamp, @signature, @secret, 1_700_000_100)
     refute Signature.valid?(@body, "invalid", @signature, @secret, 1_700_000_100)
+  end
+
+  test "persists an event_id once" do
+    event = %{"event_id" => "Ev-persisted", "event" => %{"text" => "hello"}}
+
+    assert {:ok, stored} = EventStore.insert(event)
+    assert stored.event_id == "Ev-persisted"
+    assert stored.payload == event
+    assert EventStore.insert(event) == :duplicate
   end
 
   test "enqueues only the first delivery of an event" do
