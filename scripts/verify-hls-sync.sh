@@ -5,10 +5,12 @@ cd "$(dirname "$0")/.."
 mkdir -p tmp
 port=4101
 server_pid=""
+postgres_was_running=$(docker compose ps --status running --services | grep -qx postgres && echo yes || true)
 
 cleanup() {
   test -z "$server_pid" || kill "$server_pid" >/dev/null 2>&1 || true
-  docker compose down --remove-orphans >/dev/null 2>&1 || true
+  docker compose rm -sf liquidsoap >/dev/null 2>&1 || true
+  test "$postgres_was_running" = yes || docker compose rm -sf postgres >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 

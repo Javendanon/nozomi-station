@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 cleanup() {
-  docker compose down --remove-orphans >/dev/null 2>&1 || true
+  docker compose rm -sf liquidsoap >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
