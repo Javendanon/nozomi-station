@@ -1,8 +1,12 @@
 defmodule NozomiStation.Media.Resolver do
+  alias NozomiStation.Media.{ProviderClient, YtDlp}
+
   @max_duration_seconds 15 * 60
   @youtube_id ~r/^[A-Za-z0-9_-]+$/
   @spotify_id ~r/^[A-Za-z0-9]+$/
   @duration ~r/^PT(?:(?<hours>\d+)H)?(?:(?<minutes>\d+)M)?(?:(?<seconds>\d+)S)?$/
+
+  def resolve(url), do: resolve(url, &fetch/2)
 
   def resolve(url, fetch) when is_binary(url) and is_function(fetch, 2) do
     with {:ok, provider, id} <- identify(url),
@@ -10,6 +14,8 @@ defmodule NozomiStation.Media.Resolver do
       validate(track)
     end
   end
+
+  def resolve_search(query), do: resolve_search(query, &fetch/2)
 
   def resolve_search(query, fetch) when is_binary(query) and is_function(fetch, 2) do
     with {:ok, youtube_id} <- fetch.(:youtube_search, query),
@@ -62,6 +68,8 @@ defmodule NozomiStation.Media.Resolver do
     end
   end
 
+  defp duration_seconds(duration) when is_integer(duration) and duration >= 0, do: {:ok, duration}
+
   defp duration_seconds(duration) do
     case Regex.named_captures(@duration, duration) do
       nil ->
@@ -72,6 +80,9 @@ defmodule NozomiStation.Media.Resolver do
          number(parts["hours"]) * 3600 + number(parts["minutes"]) * 60 + number(parts["seconds"])}
     end
   end
+
+  defp fetch(:spotify, id), do: ProviderClient.fetch(:spotify, id)
+  defp fetch(provider, value), do: YtDlp.fetch(provider, value)
 
   defp number(""), do: 0
   defp number(nil), do: 0

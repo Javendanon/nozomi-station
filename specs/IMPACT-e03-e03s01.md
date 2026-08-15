@@ -16,7 +16,7 @@ story_id: e03s01
 | Liquidsoap | Replace direct sine source with requested/complementary queues and sine fallback | High | Real config/HLS verification and priority script |
 | Docker Compose | Mount prepared media and bind control to host loopback | High | Priority script and compose inspection |
 | Oban | Add periodic fill and dispatch workers | Medium | Worker public-interface tests |
-| External APIs | Add fixed-host Last.fm requests | High | Deterministic response and host tests |
+| External providers | Add fixed-host Last.fm requests and yt-dlp JSON resolution | High | Deterministic mocks and local process tests |
 | Runtime config | Require Last.fm key in production | Medium | config compile and README |
 
 ## Dependents
@@ -32,7 +32,7 @@ story_id: e03s01
 2. A request interrupts rather than follows a complementary track.
 3. Liquidsoap control is reachable beyond loopback.
 4. Played complementary rows remain counted forever and prevent refill.
-5. Last.fm response data bypasses YouTube duration/live validation.
+5. Last.fm response data bypasses yt-dlp duration/live validation.
 6. Container media paths differ from Phoenix paths.
 
 ## Guardrails
@@ -41,7 +41,7 @@ story_id: e03s01
 - Liquidsoap owns priority through track-sensitive `fallback`.
 - Host publication is explicitly `127.0.0.1` and the app applies command allowlists.
 - Scheduler reconciles active Liquidsoap request metadata before dispatch.
-- Existing Resolver validates every candidate.
+- Existing Resolver validates every yt-dlp candidate; malformed JSON fails closed.
 - One configured media-root mapping translates paths and rejects traversal.
 
 ## Verdict

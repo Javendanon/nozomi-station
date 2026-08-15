@@ -8,6 +8,7 @@ delta: ADDED
 adrs:
   - specs/adr/0001-liquidsoap-broadcast-engine.md
   - specs/adr/0003-liquidsoap-local-control.md
+  - specs/adr/0004-yt-dlp-metadata-resolution.md
 ---
 
 # e03s01 — Mantener música sin solicitudes
@@ -23,7 +24,7 @@ La emisión mantiene diez pistas complementarias preparadas. Las solicitudes lis
 - Persistir pistas complementarias y sus estados de preparación, cola, reproducción, fallo y salto.
 - Usar `rock` y `80s` como semillas cuando no exista historial.
 - Derivar recomendaciones únicamente de las últimas veinte solicitudes reproducibles y no saltadas.
-- Consultar Last.fm en un host HTTPS fijo y validar cada candidata mediante YouTube antes de descargarla.
+- Consultar Last.fm en un host HTTPS fijo y resolver búsqueda, metadatos y audio de YouTube mediante yt-dlp.
 - Mantener diez pistas complementarias preparadas o encoladas durante operación normal.
 - Entregar archivos locales a dos `request.queue` de Liquidsoap mediante su puerto de control ligado a loopback.
 - Reconciliar elementos ya reproducidos para que el margen pueda rellenarse.
@@ -54,13 +55,13 @@ La emisión mantiene diez pistas complementarias preparadas. Las solicitudes lis
 ## Interfaces
 
 - Last.fm `tag.gettoptracks` para semilla y `track.getsimilar` para mood.
-- YouTube Data API y `yt-dlp` existentes.
+- `yt-dlp` para búsqueda, metadatos y preparación de YouTube.
 - Servidor de control de Liquidsoap por TCP local.
 - Oban Cron para reposición y despacho periódicos.
 
 ## Failure handling
 
-- Last.fm, YouTube o yt-dlp fallidos dejan evidencia y continúan con otras candidatas.
+- Last.fm o yt-dlp fallidos dejan evidencia y continúan con otras candidatas.
 - Un control Liquidsoap no disponible conserva la pista como `ready` para el siguiente intento.
 - Una respuesta de control malformada falla cerrada y no cambia el estado durable.
 
@@ -71,7 +72,7 @@ Registrar margen disponible, pistas preparadas, candidatas descartadas, despacho
 ## Performance
 
 - Objetivo: diez pistas complementarias preparadas o encoladas.
-- Last.fm, YouTube y Liquidsoap tienen timeout explícito.
+- Last.fm, yt-dlp y Liquidsoap tienen timeout explícito.
 - La reposición se ejecuta fuera de peticiones web.
 
 ## Acceptance criteria

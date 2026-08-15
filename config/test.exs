@@ -12,7 +12,6 @@ config :nozomi_station, Oban, testing: :manual, plugins: false
 config :nozomi_station, :slack_signing_secret, "test-signing-secret"
 config :nozomi_station, :slack_bot_token, "test-bot-token"
 config :nozomi_station, :slack_channel_id, "C01"
-config :nozomi_station, :youtube_api_key, "test-youtube-key"
 config :nozomi_station, :spotify_client_id, "test-spotify-id"
 config :nozomi_station, :spotify_client_secret, "test-spotify-secret"
 config :nozomi_station, :lastfm_api_key, "test-lastfm-key"

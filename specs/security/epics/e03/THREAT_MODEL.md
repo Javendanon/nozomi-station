@@ -2,7 +2,7 @@
 
 ## Assets and boundaries
 
-- Last.fm and YouTube credentials.
+- Last.fm credentials and optional YouTube session cookies.
 - Prepared media files and local filesystem paths.
 - PostgreSQL queue state.
 - Unauthenticated Liquidsoap control server.
@@ -15,7 +15,8 @@
 | Remote caller controls Liquidsoap | HIGH | Publish control only as `127.0.0.1:1234`; no public/container-wide host binding. |
 | Command injection through path or queue name | HIGH | Fixed command names, integer-derived file names, media-root validation, no shell. |
 | SSRF through Last.fm candidate data | HIGH | Req URL is a constant HTTPS Last.fm endpoint; candidate values are query parameters only. |
-| Malicious or malformed media candidate | HIGH | Resolve through fixed YouTube API and existing duration/live checks before yt-dlp. |
+| Malicious or malformed media candidate | HIGH | Parse mocked yt-dlp JSON and apply duration/live checks before preparation. |
+| Session cookies leak through Git or logs | HIGH | Ignore `/cookies/`, use local mode `0600`, and never log cookie paths or content. |
 | Path traversal escapes media mount | HIGH | Translate only descendants of configured media root and reject `..` paths. |
 | Provider hangs periodic worker | MEDIUM | Ten-second HTTP timeout, bounded yt-dlp, Oban retry. |
 | Duplicate periodic work downloads indefinitely | MEDIUM | Unique YouTube IDs and unique Oban jobs; margin counts durable active states. |

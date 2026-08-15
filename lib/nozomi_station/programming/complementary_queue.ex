@@ -3,7 +3,7 @@ defmodule NozomiStation.Programming.ComplementaryQueue do
 
   require Logger
 
-  alias NozomiStation.Media.{Preparer, ProviderClient, Resolver}
+  alias NozomiStation.Media.{Preparer, Resolver}
   alias NozomiStation.Programming.ComplementaryTrack
   alias NozomiStation.Repo
 
@@ -75,6 +75,6 @@ defmodule NozomiStation.Programming.ComplementaryQueue do
   defp discard(counts), do: %{counts | discarded: counts.discarded + 1}
 
   defp resolve(candidate) do
-    Resolver.resolve_search("#{candidate.artist} #{candidate.title}", &ProviderClient.fetch/2)
+    Resolver.resolve_search("#{candidate.artist} #{candidate.title}")
   end
 end

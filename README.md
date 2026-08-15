@@ -14,7 +14,7 @@ Slack acepta, valida y prepara solicitudes. La programación complementaria mant
 
 ```text
 Slack ──evento firmado──> Phoenix ──Oban/PostgreSQL──> resolución y preparación
-Last.fm/YouTube ──candidatas──> programación ──control local──> Liquidsoap
+Last.fm/yt-dlp ──candidatas──> programación ──control local──> Liquidsoap
 Liquidsoap ──escribe──> priv/static/hls ──sirve──> Phoenix ──HLS──> navegador
 ```
 
@@ -49,7 +49,7 @@ Abre [http://localhost:4000](http://localhost:4000) y pulsa **Subir al tren**. E
 
 ## Configuración de Slack
 
-La integración necesita una app de Slack suscrita al endpoint `POST /slack/events` y credenciales de Spotify y YouTube:
+La integración necesita una app de Slack suscrita al endpoint `POST /slack/events`, credenciales de Spotify y Last.fm, y `yt-dlp` disponible:
 
 ```bash
 export SLACK_SIGNING_SECRET="..."
@@ -57,11 +57,13 @@ export SLACK_BOT_TOKEN="xoxb-..."
 export SLACK_CHANNEL_ID="C..."
 export SPOTIFY_CLIENT_ID="..."
 export SPOTIFY_CLIENT_SECRET="..."
-export YOUTUBE_API_KEY="..."
 export LASTFM_API_KEY="..."
+
+# Opcional en producción: sesión para bloqueos anti-bot de yt-dlp.
+export YTDLP_COOKIES_FILE="/ruta/privada/cookies.txt"
 ```
 
-No guardes estas variables en el repositorio. En producción también son obligatorios `DATABASE_URL` y `SECRET_KEY_BASE`.
+Nozomi usa `yt-dlp` directamente para búsqueda, metadatos y descarga; no necesita una API key de YouTube. En desarrollo detecta automáticamente `cookies/cookies.txt`, que está ignorado por Git. No guardes estas variables ni las cookies en el repositorio. En producción también son obligatorios `DATABASE_URL` y `SECRET_KEY_BASE`.
 
 Para detener los servicios:
 

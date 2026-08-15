@@ -114,93 +114,31 @@ defmodule NozomiStation.Media.ResolverTest do
              end)
   end
 
-  test "fetches YouTube metadata from a fixed API host" do
-    request = fn options ->
-      send(self(), {:request, options})
-
-      {:ok,
-       %Req.Response{
-         status: 200,
-         body: %{
-           "items" => [
-             %{
-               "id" => "video_123",
-               "contentDetails" => %{"duration" => "PT3M"},
-               "snippet" => %{
-                 "title" => "Night Train",
-                 "channelTitle" => "Nozomi",
-                 "liveBroadcastContent" => "none"
-               }
-             }
-           ]
-         }
-       }}
-    end
-
-    assert {:ok, %{youtube_id: "video_123", duration: "PT3M"}} =
-             ProviderClient.fetch(:youtube, "video_123", request)
-
-    assert_receive {:request, options}
-    assert options[:url] == "https://www.googleapis.com/youtube/v3/videos"
-    assert options[:redirect] == false
-    assert options[:params][:id] == "video_123"
-
-    assert {:error, :provider_unavailable} =
-             ProviderClient.fetch(:youtube_search, "missing", fn _options ->
-               {:ok, %Req.Response{status: 200, body: %{"items" => []}}}
-             end)
-
-    unavailable = fn _options -> {:ok, %Req.Response{status: 503, body: %{}}} end
-
-    assert {:error, :provider_unavailable} =
-             ProviderClient.fetch(:youtube, "missing", unavailable)
-
-    assert {:error, :provider_unavailable} =
-             ProviderClient.fetch(:spotify, "missing", unavailable)
-  end
-
-  test "uses fixed Spotify and YouTube endpoints to pair a track" do
+  test "fetches Spotify metadata only from fixed endpoints" do
     request = fn options ->
       send(self(), {:provider_url, options[:url]})
 
-      response =
+      body =
         case options[:url] do
           "https://accounts.spotify.com/api/token" ->
             %{"access_token" => "access-token"}
 
           "https://api.spotify.com/v1/tracks/spotify789" ->
             %{"name" => "Shinkansen", "artists" => [%{"name" => "Hikari"}]}
-
-          "https://www.googleapis.com/youtube/v3/search" ->
-            %{"items" => [%{"id" => %{"videoId" => "youtube_match"}}]}
-
-          "https://www.googleapis.com/youtube/v3/videos" ->
-            %{
-              "items" => [
-                %{
-                  "id" => "youtube_match",
-                  "contentDetails" => %{"duration" => "PT5M1S"},
-                  "snippet" => %{
-                    "title" => "Shinkansen",
-                    "channelTitle" => "Hikari",
-                    "liveBroadcastContent" => "none"
-                  }
-                }
-              ]
-            }
         end
 
-      {:ok, %Req.Response{status: 200, body: response}}
+      {:ok, %Req.Response{status: 200, body: body}}
     end
 
-    fetch = fn provider, value -> ProviderClient.fetch(provider, value, request) end
-
-    assert {:ok, %{youtube_id: "youtube_match"}} =
-             Resolver.resolve("https://open.spotify.com/track/spotify789", fetch)
+    assert {:ok, %{title: "Shinkansen", artist: "Hikari"}} =
+             ProviderClient.fetch(:spotify, "spotify789", request)
 
     assert_received {:provider_url, "https://accounts.spotify.com/api/token"}
     assert_received {:provider_url, "https://api.spotify.com/v1/tracks/spotify789"}
-    assert_received {:provider_url, "https://www.googleapis.com/youtube/v3/search"}
-    assert_received {:provider_url, "https://www.googleapis.com/youtube/v3/videos"}
+
+    unavailable = fn _options -> {:ok, %Req.Response{status: 503, body: %{}}} end
+
+    assert {:error, :provider_unavailable} =
+             ProviderClient.fetch(:spotify, "missing", unavailable)
   end
 end

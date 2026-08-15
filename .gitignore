@@ -19,8 +19,9 @@ erl_crash.dump
 # Also ignore archive artifacts (built via "mix archive.build").
 *.ez
 
-# Temporary files, for example, from tests.
+# Temporary files and private YouTube session credentials.
 /tmp/
+/cookies/
 
 # Ignore package tarball (built via "mix hex.build").
 nozomi_station-*.tar

@@ -3,7 +3,7 @@ defmodule NozomiStation.Slack.RequestWorker do
 
   import Ecto.Query
 
-  alias NozomiStation.Media.{ProviderClient, Resolver}
+  alias NozomiStation.Media.Resolver
   alias NozomiStation.Repo
   alias NozomiStation.Requests.RequestFlow
   alias NozomiStation.Slack.{Client, Event, RequestProcessor}
@@ -27,7 +27,7 @@ defmodule NozomiStation.Slack.RequestWorker do
   defp dependencies do
     [
       channel: Application.fetch_env!(:nozomi_station, :slack_channel_id),
-      resolver: fn url -> Resolver.resolve(url, &ProviderClient.fetch/2) end,
+      resolver: &Resolver.resolve/1,
       prepare: &RequestFlow.prepare/2,
       reply: &Client.reply/3
     ]
