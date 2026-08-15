@@ -1,4 +1,6 @@
 defmodule NozomiStation.Programming.Lastfm do
+  require Logger
+
   @endpoint "https://ws.audioscrobbler.com/2.0/"
   @seeds ["rock", "80s"]
   @request_options [redirect: false, receive_timeout: 10_000]
@@ -38,8 +40,12 @@ defmodule NozomiStation.Programming.Lastfm do
       ] ++ @request_options
 
     case request.(options) do
-      {:ok, %Req.Response{status: 200, body: body}} -> tracks(body)
-      _ -> []
+      {:ok, %Req.Response{status: 200, body: body}} ->
+        tracks(body)
+
+      _ ->
+        Logger.warning("lastfm_request_failed method=#{method}")
+        []
     end
   end
 

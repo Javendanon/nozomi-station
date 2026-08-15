@@ -1,7 +1,7 @@
 defmodule NozomiStation.Programming.LiquidsoapClientTest do
-  use ExUnit.Case, async: false
+  use NozomiStation.DataCase, async: false
 
-  alias NozomiStation.Programming.LiquidsoapClient
+  alias NozomiStation.Programming.{LiquidsoapClient, SchedulerWorker}
 
   setup do
     keys = [:liquidsoap_host, :liquidsoap_port, :media_dir, :liquidsoap_media_dir]
@@ -37,6 +37,15 @@ defmodule NozomiStation.Programming.LiquidsoapClientTest do
     assert {:ok, ["tmp/media/c4.m4a"]} = LiquidsoapClient.active_paths()
     assert_receive {:control_command, "request.all\nquit\n"}
     assert_receive {:control_command, "request.metadata 4\nquit\n"}
+    Task.await(server)
+  end
+
+  test "scheduler worker delegates through the real control boundary" do
+    server = server(["\r\nEND\r\nBye!\r\n"])
+
+    assert {:ok, %{requested: 0, complementary: 0}} =
+             SchedulerWorker.perform(%Oban.Job{})
+
     Task.await(server)
   end
 

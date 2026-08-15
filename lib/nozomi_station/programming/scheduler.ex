@@ -25,8 +25,12 @@ defmodule NozomiStation.Programming.Scheduler do
   end
 
   defp mark_completed(schema, active_paths) do
-    from(item in schema, where: item.status == "queued" and item.file_path not in ^active_paths)
-    |> Repo.update_all(set: [status: "played", updated_at: DateTime.utc_now(:second)])
+    {count, _} =
+      from(item in schema, where: item.status == "queued" and item.file_path not in ^active_paths)
+      |> Repo.update_all(set: [status: "played", updated_at: DateTime.utc_now(:second)])
+
+    if count > 0,
+      do: Logger.info("programming_completed source=#{inspect(schema)} count=#{count}")
   end
 
   defp dispatch(schema, queue, push) do

@@ -23,9 +23,9 @@
     "hls_regression": "pass"
   },
   "quality": {
-    "elixir_tests": 50,
+    "elixir_tests": 52,
     "javascript_tests": 3,
-    "product_coverage_percent": 90.03,
+    "product_coverage_percent": 91.33,
     "npm_vulnerabilities": 0,
     "retired_hex_packages": 0
   }

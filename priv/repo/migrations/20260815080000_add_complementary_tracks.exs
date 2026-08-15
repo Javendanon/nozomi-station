@@ -1,7 +1,7 @@
 defmodule NozomiStation.Repo.Migrations.AddComplementaryTracks do
   use Ecto.Migration
 
-  def change do
+  def up do
     create table(:complementary_tracks) do
       add :youtube_id, :string, null: false
       add :title, :string, null: false
@@ -22,5 +22,16 @@ defmodule NozomiStation.Repo.Migrations.AddComplementaryTracks do
              where: "status IN ('preparing', 'ready', 'queued')",
              name: :requests_active_youtube_id_index
            )
+  end
+
+  def down do
+    drop index(:requests, [:youtube_id], name: :requests_active_youtube_id_index)
+
+    create unique_index(:requests, [:youtube_id],
+             where: "status IN ('preparing', 'ready')",
+             name: :requests_active_youtube_id_index
+           )
+
+    drop table(:complementary_tracks)
   end
 end

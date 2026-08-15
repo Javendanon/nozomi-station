@@ -5,10 +5,10 @@ captured_at: "2026-08-15T04:22:24-04:00"
 mechanical:
   mix_precommit:
     verdict: PASS
-    tests: 50
+    tests: 52
   coverage:
     verdict: PASS
-    percent: 90.03
+    percent: 91.33
     threshold: 90.0
   javascript:
     verdict: PASS

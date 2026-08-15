@@ -1,6 +1,7 @@
 defmodule NozomiStation.Programming.ComplementaryQueueTest do
   use NozomiStation.DataCase, async: true
 
+  alias NozomiStation.Media.Preparer
   alias NozomiStation.Programming.{ComplementaryQueue, ComplementaryTrack, Lastfm, RefillWorker}
   alias NozomiStation.Repo
 
@@ -57,6 +58,19 @@ defmodule NozomiStation.Programming.ComplementaryQueueTest do
                resolver: resolver,
                prepare: prepare
              )
+  end
+
+  test "namespaces prepared complementary files by database ID" do
+    runner = fn "yt-dlp", args ->
+      output = Enum.at(args, Enum.find_index(args, &(&1 == "--output")) + 1)
+      path = String.replace(output, ".%(ext)s", ".m4a")
+      File.mkdir_p!(Path.dirname(path))
+      File.write!(path, "prepared")
+      {"", 0}
+    end
+
+    assert {:ok, path} = Preparer.prepare("candidate", {:complementary, 42}, runner)
+    assert String.ends_with?(path, "/c42.m4a")
   end
 
   test "refill worker requests enough candidates for the missing margin" do
