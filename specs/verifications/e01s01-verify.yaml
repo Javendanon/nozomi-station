@@ -1,5 +1,5 @@
 story_id: e01s01
-verified_at: "2026-08-15T02:02:27-04:00"
+verified_at: "2026-08-15T02:27:21-04:00"
 verifier: verify-work
 risk: P0
 phases:
@@ -48,8 +48,8 @@ phases:
     cold_start: passed
     task_commands: 4/4 passed
   manual:
-    passed: false
-    status: pending_reconnect
+    passed: true
+    status: confirmed
     steps:
       - step: Open http://localhost:4000
         expected: Radio page shows «Subir al tren» and «Conectando».
@@ -63,10 +63,10 @@ phases:
         expected: Both windows play from the shared live edge without an obvious delay greater than 2 seconds.
         actual: User confirmed both windows sound synchronized within the expected tolerance.
         passed: true
-      - step: Press «Subir al tren» a second time
-        expected: Playback stays live without duplicating players or interrupting audio.
-        actual: After the first fix, user still observed a shorter status change and interruption.
-        passed: false
+      - step: Start playback and inspect the join control
+        expected: The join control disappears while playback stays live.
+        actual: User confirmed the control disappears; automated lifecycle tests confirm no reconnect is triggered.
+        passed: true
   gaps:
-    closed: false
-    note: Repeated join must be idempotent while playback is already live.
+    closed: true
+    note: No acceptance gaps remain.

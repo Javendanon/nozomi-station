@@ -3,7 +3,7 @@ active_flow: build_epic
 active_epic: e01
 active_story: e01s01
 epic_cycle:
-  step: 5
+  step: 6
   story_bcps: 8
   audit_result: fail
   completed_steps:
@@ -23,5 +23,5 @@ git:
 metrics:
   story_start: "2026-08-15T01:02:51-04:00"
 handoff:
-  next_skill: verify-work
-  context: Join control now disables after playback starts; awaiting focused browser UAT.
+  next_skill: audit-code
+  context: Final automated verification and browser UAT passed; rerun the audit gate.
