@@ -12,7 +12,7 @@ tasks:
     description: Derivar mood solo de las últimas veinte solicitudes reproducibles y no saltadas.
     verify: mix test test/nozomi/programming/mood_test.exs
     bcps: 2
-    status: todo
+    status: passing
   - id: 3
     description: Entregar solicitudes y pistas complementarias a colas prioritarias de Liquidsoap ligadas a loopback.
     verify: mix test test/nozomi/programming/scheduler_test.exs && bash scripts/verify-programming-priority.sh
