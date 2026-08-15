@@ -12,6 +12,9 @@ cleanup() {
 trap cleanup EXIT
 
 rm -rf priv/static/hls
+mkdir -p priv/static/hls
+export LIQUIDSOAP_UID="$(id -u)"
+export LIQUIDSOAP_GID="$(id -g)"
 docker compose up -d liquidsoap
 
 for _ in {1..30}; do

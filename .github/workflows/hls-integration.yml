@@ -1,22 +1,32 @@
-name: Test Build Release
+name: HLS Integration
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+    paths:
+      - compose.yaml
+      - "config/liquidsoap/**"
+      - "scripts/verify-hls-*.sh"
+      - "scripts/verify-liquidsoap-*.sh"
+      - "assets/js/radio_player.*"
+      - "assets/package*.json"
+      - lib/nozomi_station_web/live/radio_live.ex
+      - mix.exs
+      - mix.lock
+      - .github/workflows/hls-integration.yml
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: test-${{ github.workflow }}-${{ github.ref }}
+  group: hls-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test:
+  hls:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     env:
       MIX_ENV: test
     steps:
@@ -32,6 +42,5 @@ jobs:
           cache-dependency-path: assets/package-lock.json
       - run: mix deps.get
       - run: npm ci --prefix assets
-      - run: mix precommit
-      - run: mix test --cover
-      - run: npm --prefix assets test -- js/radio_player.test.mjs
+      - run: bash scripts/verify-liquidsoap-hls.sh
+      - run: bash scripts/verify-hls-sync.sh
