@@ -1,6 +1,8 @@
 defmodule NozomiStation.Slack.RequestWorkerTest do
   use NozomiStation.DataCase, async: true
 
+  import ExUnit.CaptureLog
+
   alias NozomiStation.Slack.{Client, EventStore, RequestWorker}
 
   test "posts thread replies only to Slack's fixed API host" do
@@ -60,8 +62,10 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
     job = %Oban.Job{args: %{"event_id" => "Ev-worker"}}
     deps = [channel: "C01", resolver: resolver, prepare: prepare, reply: reply]
 
-    assert :ok = RequestWorker.perform(job, deps)
+    log = capture_log(fn -> assert :ok = RequestWorker.perform(job, deps) end)
 
+    assert log =~ "request_ready"
+    assert log =~ "position=1"
     assert_received {:resolved, "https://youtu.be/one"}
     assert_received {:resolved, "https://open.spotify.com/track/two"}
 
