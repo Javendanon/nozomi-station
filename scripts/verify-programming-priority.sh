@@ -25,7 +25,7 @@ for _ in $(seq 1 30); do
   sleep 0.5
 done
 
-MIX_ENV=test mix run -e '
+MIX_ENV=test mix run --no-start -e '
 :ok = NozomiStation.Programming.LiquidsoapClient.push(
   :complementary,
   "tmp/media/priority-complementary.m4a"
@@ -39,7 +39,7 @@ done
 docker compose logs liquidsoap 2>&1 | grep 'Switch to complementary' >/dev/null
 
 started=$(date +%s)
-MIX_ENV=test mix run -e '
+MIX_ENV=test mix run --no-start -e '
 :ok = NozomiStation.Programming.LiquidsoapClient.push(
   :requested,
   "tmp/media/priority-request.m4a"
