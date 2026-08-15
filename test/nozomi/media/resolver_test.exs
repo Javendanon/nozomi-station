@@ -43,7 +43,7 @@ defmodule NozomiStation.Media.ResolverTest do
 
   test "pairs a Spotify track with a playable YouTube result" do
     fetch = fn
-      :spotify, "spotify_789" ->
+      :spotify, "spotify789" ->
         {:ok, %{title: "Shinkansen", artist: "Hikari"}}
 
       :youtube_search, "Hikari Shinkansen" ->
@@ -61,7 +61,7 @@ defmodule NozomiStation.Media.ResolverTest do
     end
 
     assert {:ok, track} =
-             Resolver.resolve("https://open.spotify.com/track/spotify_789?si=share", fetch)
+             Resolver.resolve("https://open.spotify.com/track/spotify789?si=share", fetch)
 
     assert track.youtube_id == "youtube_match"
     assert track.duration_seconds == 301

@@ -1,11 +1,12 @@
 defmodule NozomiStation.Media.Resolver do
   @max_duration_seconds 15 * 60
   @youtube_id ~r/^[A-Za-z0-9_-]+$/
+  @spotify_id ~r/^[A-Za-z0-9]+$/
   @duration ~r/^PT(?:(?<hours>\d+)H)?(?:(?<minutes>\d+)M)?(?:(?<seconds>\d+)S)?$/
 
   def resolve(url, fetch) when is_binary(url) and is_function(fetch, 2) do
     with {:ok, provider, id} <- identify(url),
-         {:ok, track} <- fetch.(provider, id),
+         {:ok, track} <- resolve_provider(provider, id, fetch),
          {:ok, seconds} <- duration_seconds(track.duration),
          true <- not track.live? and seconds <= @max_duration_seconds do
       {:ok, track |> Map.delete(:duration) |> Map.put(:duration_seconds, seconds)}
@@ -25,8 +26,21 @@ defmodule NozomiStation.Media.Resolver do
       when host in ["youtube.com", "www.youtube.com", "music.youtube.com"] and is_binary(query) ->
         query |> URI.decode_query() |> Map.get("v") |> youtube()
 
+      %URI{scheme: "https", host: "open.spotify.com", path: "/track/" <> id} ->
+        if Regex.match?(@spotify_id, id), do: {:ok, :spotify, id}, else: {:error, :invalid_url}
+
       _ ->
         {:error, :unsupported_url}
+    end
+  end
+
+  defp resolve_provider(:youtube, id, fetch), do: fetch.(:youtube, id)
+
+  defp resolve_provider(:spotify, id, fetch) do
+    with {:ok, %{artist: artist, title: title}} <- fetch.(:spotify, id),
+         {:ok, youtube_id} <- fetch.(:youtube_search, "#{artist} #{title}"),
+         {:ok, track} <- fetch.(:youtube, youtube_id) do
+      {:ok, track}
     end
   end
 
