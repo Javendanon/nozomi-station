@@ -3,7 +3,7 @@ active_flow: build_epic
 active_epic: e01
 active_story: e01s01
 epic_cycle:
-  step: 4
+  step: 5
   story_bcps: 8
   audit_result: fail
   completed_steps:
@@ -15,11 +15,12 @@ epic_cycle:
     - 5
     - "6(fail: provenance,test-coverage,FIRST)"
     - "4(audit-fixes)"
+    - "4(repeated-join-fix)"
 git:
   branch: feat/e01-live-broadcast
   base: main
 metrics:
   story_start: "2026-08-15T01:02:51-04:00"
 handoff:
-  next_skill: develop-tdd
-  context: UAT exposed a one-second interruption on repeated join; make the live join action idempotent.
+  next_skill: verify-work
+  context: Repeated join is now idempotent and automated checks pass; awaiting focused browser UAT.
