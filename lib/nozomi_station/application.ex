@@ -9,6 +9,8 @@ defmodule NozomiStation.Application do
   def start(_type, _args) do
     children = [
       NozomiStationWeb.Telemetry,
+      NozomiStation.Repo,
+      {Oban, Application.fetch_env!(:nozomi_station, Oban)},
       {DNSCluster, query: Application.get_env(:nozomi_station, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: NozomiStation.PubSub},
       # Start a worker by calling: NozomiStation.Worker.start_link(arg)

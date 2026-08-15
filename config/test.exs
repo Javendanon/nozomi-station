@@ -1,5 +1,15 @@
 import Config
 
+config :nozomi_station, NozomiStation.Repo,
+  username: "postgres",
+  password: "postgres",
+  hostname: System.get_env("POSTGRES_HOST", "localhost"),
+  database: "nozomi_station_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: System.schedulers_online() * 2
+
+config :nozomi_station, Oban, testing: :manual
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :nozomi_station, NozomiStationWeb.Endpoint,

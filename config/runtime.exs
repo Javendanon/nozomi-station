@@ -38,6 +38,14 @@ if config_env() == :prod do
 
   host = System.get_env("PHX_HOST") || "example.com"
 
+  database_url =
+    System.get_env("DATABASE_URL") ||
+      raise "environment variable DATABASE_URL is missing"
+
+  config :nozomi_station, NozomiStation.Repo,
+    url: database_url,
+    pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
+
   config :nozomi_station, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :nozomi_station, NozomiStationWeb.Endpoint,

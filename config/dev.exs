@@ -1,5 +1,13 @@
 import Config
 
+config :nozomi_station, NozomiStation.Repo,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "nozomi_station_dev",
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

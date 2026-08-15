@@ -8,7 +8,12 @@
 import Config
 
 config :nozomi_station,
+  ecto_repos: [NozomiStation.Repo],
   generators: [timestamp_type: :utc_datetime]
+
+config :nozomi_station, Oban,
+  repo: NozomiStation.Repo,
+  queues: [requests: 5]
 
 # Configure the endpoint
 config :nozomi_station, NozomiStationWeb.Endpoint,
