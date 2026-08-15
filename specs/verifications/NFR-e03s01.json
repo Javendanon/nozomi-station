@@ -25,7 +25,7 @@
   "quality": {
     "elixir_tests": 57,
     "javascript_tests": 3,
-    "product_coverage_percent": 90.08,
+    "product_coverage_percent": 90.11,
     "npm_vulnerabilities": 0,
     "retired_hex_packages": 0
   }

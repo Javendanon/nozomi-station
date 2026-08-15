@@ -36,7 +36,7 @@ The churn ranking helper is absent. Review used `git diff --numstat main...HEAD`
 - ✓ Skipped complementary tracks cannot be selected again.
 - ✓ Mood uses at most twenty reproducible requests and excludes failed/skipped rows.
 - ✓ Requests remain duplicate-protected after entering `queued`.
-- ✓ Scheduler reconciles active Liquidsoap request metadata before marking completed rows.
+- ✓ Scheduler parses space-delimited Liquidsoap request IDs and reconciles both active filenames and idle initial URIs before marking completed rows.
 - ✓ Failed control pushes leave rows ready for retry.
 - ✓ Forward and backward migration paths pass; migration timestamp follows all existing migrations.
 - ✓ Real Liquidsoap evidence confirms requested playback follows the current complementary boundary.
@@ -60,7 +60,7 @@ The churn ranking helper is absent. Review used `git diff --numstat main...HEAD`
 ### Test coverage and F.I.R.S.T — PASS
 
 - ✓ 57 Elixir tests and 3 JavaScript tests pass.
-- ✓ Product-module line coverage is 90.08%, above the 90% gate.
+- ✓ Product-module line coverage is 90.11%, above the 90% gate.
 - ✓ Every new behavior, callback wrapper, failure branch, path boundary, and migration direction has executable coverage.
 
 | Criterion | Evidence |

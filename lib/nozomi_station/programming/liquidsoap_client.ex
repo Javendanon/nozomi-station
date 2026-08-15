@@ -17,8 +17,9 @@ defmodule NozomiStation.Programming.LiquidsoapClient do
   def active_paths, do: active_paths(&command/1, [])
 
   def active_paths(command, options) do
-    with {:ok, ids} <- command.("request.all") do
-      ids
+    with {:ok, lines} <- command.("request.all") do
+      lines
+      |> Enum.flat_map(&String.split/1)
       |> Enum.reduce_while({:ok, []}, fn id, {:ok, paths} ->
         case active_path(id, command, options) do
           {:ok, path} -> {:cont, {:ok, [path | paths]}}
@@ -37,13 +38,17 @@ defmodule NozomiStation.Programming.LiquidsoapClient do
     with true <- id =~ ~r/^\d+$/,
          {:ok, metadata} <- command.("request.metadata #{id}"),
          false <- metadata == ["No such request."],
-         line when is_binary(line) <- Enum.find(metadata, &String.starts_with?(&1, "filename=")),
-         [_, path] <- Regex.run(~r/^filename="([^"]+)"$/, line) do
+         line when is_binary(line) <- Enum.find(metadata, &media_path?/1),
+         [_, path] <- Regex.run(~r/^(?:filename|initial_uri)="([^"]+)"$/, line) do
       from_liquidsoap_path(path, options)
     else
       value when value in [true, false, nil] -> :finished
       _ -> {:error, :invalid_control_response}
     end
+  end
+
+  defp media_path?(line) do
+    String.starts_with?(line, "filename=") or String.starts_with?(line, "initial_uri=")
   end
 
   defp command(value) do

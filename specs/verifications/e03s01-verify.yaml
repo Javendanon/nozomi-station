@@ -8,7 +8,7 @@ mechanical:
     tests: 57
   coverage:
     verdict: PASS
-    percent: 90.08
+    percent: 90.11
     threshold: 90.0
   javascript:
     verdict: PASS
@@ -63,6 +63,7 @@ uat:
     - The Cure - Just Like Heaven
     - a-ha - Take On Me
   queue_state: 3 queued rows and Liquidsoap request IDs 0, 1, 2
+  reconciliation: Space-delimited request IDs and idle initial_uri metadata preserved all three queued rows.
   signed: true
   perceptual_browser_step: not_required
   rationale: Real downloads, database rows, Liquidsoap queue IDs, engine switches, and active HLS output provide direct evidence.
