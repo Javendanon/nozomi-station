@@ -89,7 +89,14 @@ defmodule NozomiStation.Requests.RequestFlowTest do
     end
 
     requester = %{slack_user: "U02", slack_channel: "C01", thread_ts: "999"}
-    runner = fn "yt-dlp", _args -> {"", 0} end
+
+    runner = fn "yt-dlp", args ->
+      output = Enum.at(args, Enum.find_index(args, &(&1 == "--output")) + 1)
+      path = String.replace(output, ".%(ext)s", ".m4a")
+      File.mkdir_p!(Path.dirname(path))
+      File.write!(path, "prepared")
+      {"", 0}
+    end
 
     assert {:error, :duplicate} =
              RequestFlow.prepare(

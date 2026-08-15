@@ -18,9 +18,14 @@ defmodule NozomiStation.Media.Preparer do
       "https://www.youtube.com/watch?v=#{youtube_id}"
     ]
 
+    path = base <> ".m4a"
+
     case runner.("yt-dlp", args) do
-      {_output, 0} -> {:ok, base <> ".m4a"}
-      _ -> {:error, :preparation_failed}
+      {_output, 0} ->
+        if(File.regular?(path), do: {:ok, path}, else: {:error, :preparation_failed})
+
+      _ ->
+        {:error, :preparation_failed}
     end
   end
 

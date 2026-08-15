@@ -7,9 +7,19 @@ defmodule NozomiStation.Requests.RequestFlow do
 
   @active_statuses ["preparing", "ready"]
 
-  def prepare(track, requester, runner \\ &System.cmd/2) do
+  def prepare(track, requester) do
+    prepare_with(track, requester, &Preparer.prepare/2)
+  end
+
+  def prepare(track, requester, runner) do
+    prepare_with(track, requester, fn youtube_id, request_id ->
+      Preparer.prepare(youtube_id, request_id, runner)
+    end)
+  end
+
+  defp prepare_with(track, requester, prepare) do
     with {:ok, request} <- reserve(track, requester) do
-      case Preparer.prepare(track.youtube_id, request.id, runner) do
+      case prepare.(track.youtube_id, request.id) do
         {:ok, path} ->
           with {:ok, ready} <- persist(request, %{status: "ready", file_path: path}) do
             {:ok, ready, position(ready)}
