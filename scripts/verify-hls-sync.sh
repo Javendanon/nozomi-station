@@ -2,6 +2,7 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+mkdir -p tmp
 port=4101
 server_pid=""
 
