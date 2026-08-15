@@ -1,7 +1,7 @@
 defmodule NozomiStation.Slack.EventsTest do
   use ExUnit.Case, async: true
 
-  alias NozomiStation.Slack.Signature
+  alias NozomiStation.Slack.{Events, Signature}
 
   @body ~s({"type":"event_callback","event_id":"Ev01"})
   @secret "test-signing-secret"
@@ -16,5 +16,27 @@ defmodule NozomiStation.Slack.EventsTest do
     refute Signature.valid?(@body, @timestamp, @signature, @secret, 1_700_000_301)
     refute Signature.valid?(@body <> " ", @timestamp, @signature, @secret, 1_700_000_100)
     refute Signature.valid?(@body, "invalid", @signature, @secret, 1_700_000_100)
+  end
+
+  test "enqueues only the first delivery of an event" do
+    {:ok, seen} = Agent.start_link(fn -> MapSet.new() end)
+
+    store = fn event ->
+      Agent.get_and_update(seen, fn ids ->
+        if MapSet.member?(ids, event["event_id"]) do
+          {:duplicate, ids}
+        else
+          {{:ok, event}, MapSet.put(ids, event["event_id"])}
+        end
+      end)
+    end
+
+    enqueue = fn event -> send(self(), {:enqueued, event["event_id"]}) end
+    event = %{"event_id" => "Ev01"}
+
+    assert Events.accept(event, store, enqueue) == :accepted
+    assert_receive {:enqueued, "Ev01"}
+    assert Events.accept(event, store, enqueue) == :duplicate
+    refute_receive {:enqueued, "Ev01"}
   end
 end
