@@ -1,7 +1,7 @@
 story_id: e02s01
 spec: e02s01-slack-requests.md
 title: Solicitar canciones desde Slack
-status: passing
+status: done
 bcps: 8
 risk: P0
 tasks:

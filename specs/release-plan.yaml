@@ -13,7 +13,7 @@ epics:
     bcps: 8
   - id: e02
     title: Solicitudes automáticas desde Slack
-    capsule_dir: epics/e02-slack-requests
+    capsule_dir: epics/archive/e02-slack-requests
     wsjf: 3.7
     bcps: 8
   - id: e03
