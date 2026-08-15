@@ -93,7 +93,7 @@ bash scripts/verify-programming-priority.sh
 
 La integración HLS comprueba el códec, la continuidad del manifiesto y que dos clientes simultáneos compartan la misma ventana de emisión.
 
-En CI, estas comprobaciones solo se ejecutan cuando un PR modifica Liquidsoap, HLS o el reproductor. También pueden lanzarse manualmente desde GitHub Actions.
+El CI automático ejecuta las pruebas rápidas en cada PR. Las integraciones Docker de HLS y prioridad se ejecutan localmente antes de abrir o actualizar el PR; GitHub Actions las conserva como un workflow manual para la verificación final de una release.
 
 ## Estructura
 
