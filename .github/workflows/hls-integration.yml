@@ -8,6 +8,7 @@ on:
       - "config/liquidsoap/**"
       - "scripts/verify-hls-*.sh"
       - "scripts/verify-liquidsoap-*.sh"
+      - scripts/verify-programming-priority.sh
       - "assets/js/radio_player.*"
       - "assets/package*.json"
       - lib/nozomi_station_web/live/radio_live.ex
@@ -45,3 +46,4 @@ jobs:
       - run: npm ci --prefix assets
       - run: bash scripts/verify-liquidsoap-hls.sh
       - run: bash scripts/verify-hls-sync.sh
+      - run: bash scripts/verify-programming-priority.sh

@@ -13,7 +13,14 @@ config :nozomi_station,
 
 config :nozomi_station, Oban,
   repo: NozomiStation.Repo,
-  queues: [requests: 5]
+  queues: [requests: 5, programming: 2],
+  plugins: [
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"* * * * *", NozomiStation.Programming.RefillWorker},
+       {"* * * * *", NozomiStation.Programming.SchedulerWorker}
+     ]}
+  ]
 
 # Configure the endpoint
 config :nozomi_station, NozomiStationWeb.Endpoint,

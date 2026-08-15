@@ -8,7 +8,7 @@ config :nozomi_station, NozomiStation.Repo,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 
-config :nozomi_station, Oban, testing: :manual
+config :nozomi_station, Oban, testing: :manual, plugins: false
 config :nozomi_station, :slack_signing_secret, "test-signing-secret"
 config :nozomi_station, :slack_bot_token, "test-bot-token"
 config :nozomi_station, :slack_channel_id, "C01"

@@ -1,7 +1,7 @@
 defmodule NozomiStation.Programming.ComplementaryQueueTest do
   use NozomiStation.DataCase, async: true
 
-  alias NozomiStation.Programming.{ComplementaryQueue, ComplementaryTrack, Lastfm}
+  alias NozomiStation.Programming.{ComplementaryQueue, ComplementaryTrack, Lastfm, RefillWorker}
   alias NozomiStation.Repo
 
   test "fills a ten-track margin and ignores failed candidates" do
@@ -52,6 +52,31 @@ defmodule NozomiStation.Programming.ComplementaryQueueTest do
                resolver: resolver,
                prepare: prepare
              )
+  end
+
+  test "refill worker requests enough candidates for the missing margin" do
+    candidates = candidates(30)
+
+    source = fn mood, limit ->
+      send(self(), {:source, mood, limit})
+      {:ok, candidates}
+    end
+
+    fill = fn supplied, origin ->
+      send(self(), {:fill, supplied, origin})
+      {:ok, %{available: 10}}
+    end
+
+    assert {:ok, %{available: 10}} =
+             RefillWorker.run(
+               count: fn -> 0 end,
+               mood: fn -> [] end,
+               source: source,
+               fill: fill
+             )
+
+    assert_received {:source, [], 30}
+    assert_received {:fill, ^candidates, :seed}
   end
 
   test "uses only rock and 80s tags when there is no mood" do

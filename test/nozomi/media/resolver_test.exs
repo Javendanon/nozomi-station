@@ -41,6 +41,26 @@ defmodule NozomiStation.Media.ResolverTest do
     assert track.youtube_id == "canonical_456"
   end
 
+  test "resolves a search candidate through the same playback checks" do
+    fetch = fn
+      :youtube_search, "New Order Blue Monday" ->
+        {:ok, "candidate_1"}
+
+      :youtube, "candidate_1" ->
+        {:ok,
+         %{
+           youtube_id: "candidate_1",
+           title: "Blue Monday",
+           artist: "New Order",
+           duration: "PT7M29S",
+           live?: false
+         }}
+    end
+
+    assert {:ok, %{youtube_id: "candidate_1", duration_seconds: 449}} =
+             Resolver.resolve_search("New Order Blue Monday", fetch)
+  end
+
   test "pairs a Spotify track with a playable YouTube result" do
     fetch = fn
       :spotify, "spotify789" ->

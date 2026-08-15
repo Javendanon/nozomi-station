@@ -19,9 +19,12 @@ services:
     init: true
     restart: unless-stopped
     command: /etc/liquidsoap/radio.liq
+    ports:
+      - "127.0.0.1:1234:1234"
     volumes:
       - ./config/liquidsoap:/etc/liquidsoap:ro
       - ./priv/static/hls:/hls
+      - ./tmp/media:/media:ro
 
 volumes:
   postgres-data:

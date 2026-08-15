@@ -17,4 +17,4 @@ tasks:
     description: Entregar solicitudes y pistas complementarias a colas prioritarias de Liquidsoap ligadas a loopback.
     verify: mix test test/nozomi/programming/scheduler_test.exs && bash scripts/verify-programming-priority.sh
     bcps: 3
-    status: todo
+    status: passing

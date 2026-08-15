@@ -3,13 +3,15 @@ active_flow: build_epic
 active_epic: e03
 active_story: e03s01
 epic_cycle:
-  step: 3
+  step: 5
   story_bcps: 8
   audit_result: null
   completed_steps:
     - 0
     - 1
     - 2
+    - 3
+    - 4
 git:
   branch: feat/e03-complementary-programming
   base: main
@@ -17,5 +19,5 @@ metrics:
   story_start: "2026-08-15T03:50:11-04:00"
 release: null
 handoff:
-  next_skill: develop-tdd
-  context: e03s01 threat model, impact, ADR, detailed scope, and three executable tasks are ready; implement one vertical test slice at a time.
+  next_skill: verify-work
+  context: All three e03s01 tasks and real Liquidsoap priority verification pass; run full mechanical, security, NFR, and UAT gates.
