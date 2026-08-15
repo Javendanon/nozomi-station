@@ -17,7 +17,13 @@ defmodule NozomiStationWeb.RadioLive do
         <h1 class="text-4xl font-bold tracking-tight text-zinc-950 sm:text-6xl">
           Radio en vivo
         </h1>
-        <div id="radio-player" data-stream={@stream_url} class="space-y-3">
+        <div
+          id="radio-player"
+          data-stream={@stream_url}
+          phx-hook="RadioPlayer"
+          phx-update="ignore"
+          class="space-y-3"
+        >
           <button
             id="join-live"
             type="button"

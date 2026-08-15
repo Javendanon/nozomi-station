@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import {connectToLiveStream} from "./radio_player.js"
+import {connectToLiveStream} from "./radio_player.mjs"
 
 const audio = nativeHls => ({
   canPlayType: () => nativeHls ? "maybe" : "",

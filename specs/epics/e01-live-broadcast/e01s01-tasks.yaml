@@ -30,7 +30,7 @@ tasks:
         - Security Review
   - id: 3
     description: Conectar el CTA a la emisión HLS usando soporte nativo o hls.js y exponer el estado actual por LiveView.
-    verify: mix test test/nozomi_station_web/live/radio_live_test.exs && npm --prefix assets test -- js/radio_player.test.js
+    verify: mix test test/nozomi_station_web/live/radio_live_test.exs && npm --prefix assets test -- js/radio_player.test.mjs
     security_verify: no new security findings in affected paths
     risk: P0
     security: medium
