@@ -1,0 +1,32 @@
+{
+  "story": "e03s01",
+  "captured_at": "2026-08-15T04:22:24-04:00",
+  "margin": {
+    "target": 10,
+    "verified": 10,
+    "evidence": "complementary_queue_test fills ten despite one provider and one preparation failure"
+  },
+  "priority": {
+    "complementary_seconds": 6,
+    "boundary_wait_seconds": 6,
+    "requested_played_next": true,
+    "evidence": "scripts/verify-programming-priority.sh"
+  },
+  "control": {
+    "host_binding": "127.0.0.1:1234",
+    "public_binding": false,
+    "command_allowlist": ["requested.push", "complementary.push", "request.all", "request.metadata"]
+  },
+  "continuity": {
+    "aac_kbps": 192,
+    "target_duration_seconds_max": 2,
+    "hls_regression": "pass"
+  },
+  "quality": {
+    "elixir_tests": 50,
+    "javascript_tests": 3,
+    "product_coverage_percent": 90.03,
+    "npm_vulnerabilities": 0,
+    "retired_hex_packages": 0
+  }
+}

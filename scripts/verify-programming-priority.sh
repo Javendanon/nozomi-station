@@ -51,7 +51,8 @@ for _ in $(seq 1 50); do
   sleep 0.2
 done
 docker compose logs liquidsoap 2>&1 | grep 'Switch to requested' >/dev/null
-test $(($(date +%s) - started)) -ge 4
+elapsed=$(($(date +%s) - started))
+test "$elapsed" -ge 4
 
 test "$(docker compose port liquidsoap 1234)" = "127.0.0.1:1234"
-echo "programming-priority: OK"
+echo "programming-priority: OK (${elapsed}s boundary wait)"
