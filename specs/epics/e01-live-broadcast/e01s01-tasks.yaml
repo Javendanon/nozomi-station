@@ -1,7 +1,7 @@
 story_id: e01s01
 spec: e01s01-live-broadcast.md
 title: Escuchar una emisión continua compartida
-status: passing
+status: failing
 bcps: 8
 risk: P0
 tasks:
@@ -34,7 +34,7 @@ tasks:
     security_verify: no new security findings in affected paths
     risk: P0
     security: medium
-    status: passing
+    status: failing
     allure:
       severity: critical
       categories:
