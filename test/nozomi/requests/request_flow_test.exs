@@ -1,7 +1,7 @@
 defmodule NozomiStation.Requests.RequestFlowTest do
   use NozomiStation.DataCase, async: true
 
-  alias NozomiStation.Requests.RequestFlow
+  alias NozomiStation.Requests.{Request, RequestFlow}
 
   test "prepares one safe FIFO request and rejects an active duplicate" do
     track = %{
@@ -55,6 +55,61 @@ defmodule NozomiStation.Requests.RequestFlowTest do
     end
 
     assert {:ok, request, 1} = RequestFlow.prepare(track, requester, successful_runner)
+    assert request.status == "ready"
+  end
+
+  test "does not queue a downloader success without an output file" do
+    track = %{
+      youtube_id: "missing_file",
+      title: "Missing",
+      artist: "Nozomi",
+      duration_seconds: 120
+    }
+
+    requester = %{slack_user: "U01", slack_channel: "C01", thread_ts: "345.67"}
+
+    assert {:error, :preparation_failed} =
+             RequestFlow.prepare(track, requester, fn "yt-dlp", _args -> {"", 0} end)
+  end
+
+  test "rejects the last ten played tracks but permits the older one" do
+    for number <- 1..11 do
+      Repo.insert!(
+        Request.changeset(%Request{}, %{
+          youtube_id: "played_#{number}",
+          title: "Track #{number}",
+          artist: "Nozomi",
+          duration_seconds: 120,
+          slack_user: "U01",
+          slack_channel: "C01",
+          thread_ts: Integer.to_string(number),
+          status: "played"
+        })
+      )
+    end
+
+    requester = %{slack_user: "U02", slack_channel: "C01", thread_ts: "999"}
+    runner = fn "yt-dlp", _args -> {"", 0} end
+
+    assert {:error, :duplicate} =
+             RequestFlow.prepare(
+               %{
+                 youtube_id: "played_11",
+                 title: "Recent",
+                 artist: "Nozomi",
+                 duration_seconds: 120
+               },
+               requester,
+               runner
+             )
+
+    assert {:ok, request, 1} =
+             RequestFlow.prepare(
+               %{youtube_id: "played_1", title: "Old", artist: "Nozomi", duration_seconds: 120},
+               requester,
+               runner
+             )
+
     assert request.status == "ready"
   end
 end
