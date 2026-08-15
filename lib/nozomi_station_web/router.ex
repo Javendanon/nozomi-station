@@ -17,7 +17,7 @@ defmodule NozomiStationWeb.Router do
   scope "/", NozomiStationWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", RadioLive
   end
 
   # Other scopes may use custom stacks.

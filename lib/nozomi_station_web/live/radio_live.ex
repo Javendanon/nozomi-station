@@ -1,0 +1,27 @@
+defmodule NozomiStationWeb.RadioLive do
+  use NozomiStationWeb, :live_view
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <Layouts.app flash={@flash}>
+      <section class="space-y-6 text-center">
+        <p class="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">
+          Nozomi Station
+        </p>
+        <h1 class="text-4xl font-bold tracking-tight text-zinc-950 sm:text-6xl">
+          Radio en vivo
+        </h1>
+        <button
+          id="join-live"
+          type="button"
+          aria-label="Subir al tren y escuchar en vivo"
+          class="rounded-full bg-zinc-950 px-6 py-3 font-semibold text-white transition hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
+        >
+          Subir al tren
+        </button>
+      </section>
+    </Layouts.app>
+    """
+  end
+end
