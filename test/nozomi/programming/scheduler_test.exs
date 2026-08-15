@@ -98,9 +98,9 @@ defmodule NozomiStation.Programming.SchedulerTest do
 
   test "reads active request filenames from Liquidsoap metadata" do
     command = fn
-      "request.all" -> {:ok, ["4", "9"]}
+      "request.all" -> {:ok, ["4 9"]}
       "request.metadata 4" -> {:ok, [~s(filename="/media/4.m4a"), ~s(status="ready")]}
-      "request.metadata 9" -> {:ok, [~s(filename="/media/c9.m4a"), ~s(status="ready")]}
+      "request.metadata 9" -> {:ok, [~s(initial_uri="/media/c9.m4a"), ~s(status="idle")]}
     end
 
     assert {:ok, ["/host/media/4.m4a", "/host/media/c9.m4a"]} =
