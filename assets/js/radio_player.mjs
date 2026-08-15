@@ -29,28 +29,31 @@ export const RadioPlayer = {
     this.status = this.el.querySelector("#stream-status")
     this.connected = false
     this.connecting = false
-    this.onPlaying = () => {
-      this.connected = true
-      this.connecting = false
-      this.status.textContent = "En vivo"
-    }
-    this.onJoin = async () => {
-      if (this.connected || this.connecting) return
-
-      this.connecting = true
-      this.status.textContent = "Conectando"
-      this.hls?.destroy()
-
-      try {
-        this.hls = await connectToLiveStream(this.audio, this.el.dataset.stream)
-      } catch (_error) {
-        this.connecting = false
-        this.status.textContent = "Emisión no disponible"
-      }
-    }
-
+    this.onPlaying = () => this.markLive()
+    this.onJoin = () => this.joinLive()
     this.audio.addEventListener("playing", this.onPlaying)
     this.button.addEventListener("click", this.onJoin)
+  },
+
+  markLive() {
+    this.connected = true
+    this.connecting = false
+    this.status.textContent = "En vivo"
+  },
+
+  async joinLive() {
+    if (this.connected || this.connecting) return
+
+    this.connecting = true
+    this.status.textContent = "Conectando"
+    this.hls?.destroy()
+
+    try {
+      this.hls = await connectToLiveStream(this.audio, this.el.dataset.stream)
+    } catch (_error) {
+      this.connecting = false
+      this.status.textContent = "Emisión no disponible"
+    }
   },
 
   destroyed() {
