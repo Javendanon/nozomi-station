@@ -1,4 +1,6 @@
 defmodule NozomiStation.Slack.RequestProcessor do
+  require Logger
+
   @url ~r{https://[^\s>|]+}
   @permanent_errors [:duplicate, :invalid_duration, :invalid_url, :not_playable, :unsupported_url]
 
@@ -31,9 +33,12 @@ defmodule NozomiStation.Slack.RequestProcessor do
              event["ts"],
              "Aceptada: #{request.title} · posición #{position}"
            ) do
+      Logger.info("request_ready youtube_id=#{track.youtube_id} position=#{position}")
       {:cont, :ok}
     else
       {:error, reason} when reason in @permanent_errors ->
+        Logger.info("request_rejected reason=#{reason}")
+
         message =
           if reason == :duplicate,
             do: "Rechazada: canción duplicada",
@@ -45,6 +50,7 @@ defmodule NozomiStation.Slack.RequestProcessor do
         end
 
       {:error, reason} ->
+        Logger.warning("request_retry reason=#{reason}")
         {:halt, {:error, reason}}
     end
   end

@@ -1,5 +1,5 @@
 defmodule NozomiStation.Slack.RequestWorkerTest do
-  use NozomiStation.DataCase, async: true
+  use NozomiStation.DataCase, async: false
 
   import ExUnit.CaptureLog
 
@@ -62,7 +62,10 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
     job = %Oban.Job{args: %{"event_id" => "Ev-worker"}}
     deps = [channel: "C01", resolver: resolver, prepare: prepare, reply: reply]
 
-    log = capture_log(fn -> assert :ok = RequestWorker.perform(job, deps) end)
+    previous_level = Logger.level()
+    Logger.configure(level: :info)
+    on_exit(fn -> Logger.configure(level: previous_level) end)
+    log = capture_log([level: :info], fn -> assert :ok = RequestWorker.perform(job, deps) end)
 
     assert log =~ "request_ready"
     assert log =~ "position=1"

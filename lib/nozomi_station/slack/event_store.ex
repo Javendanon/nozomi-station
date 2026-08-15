@@ -1,4 +1,6 @@
 defmodule NozomiStation.Slack.EventStore do
+  require Logger
+
   alias NozomiStation.Repo
   alias NozomiStation.Slack.Event
 
@@ -15,8 +17,12 @@ defmodule NozomiStation.Slack.EventStore do
                :duplicate
            end
          end) do
-      {:ok, result} -> result
-      {:error, reason} -> {:error, reason}
+      {:ok, result} ->
+        Logger.info("slack_event_#{result} event_id=#{payload["event_id"]}")
+        result
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
