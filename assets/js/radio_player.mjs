@@ -30,6 +30,7 @@ export const RadioPlayer = {
     this.onPlaying = () => this.status.textContent = "En vivo"
     this.onJoin = async () => {
       this.status.textContent = "Conectando"
+      this.hls?.destroy()
 
       try {
         this.hls = await connectToLiveStream(this.audio, this.el.dataset.stream)
