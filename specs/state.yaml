@@ -3,7 +3,7 @@ active_flow: build_epic
 active_epic: e02
 active_story: e02s01
 epic_cycle:
-  step: 7
+  step: 8
   story_bcps: 8
   audit_result: pass
   completed_steps:
@@ -16,6 +16,7 @@ epic_cycle:
     - "4(observability-fix)"
     - "5(pass)"
     - "6(pass)"
+    - 7
 git:
   branch: feat/e02-slack-requests
   base: main
@@ -28,5 +29,5 @@ last_release:
   merged_at: "2026-08-15T06:46:15Z"
   ci_verified: true
 handoff:
-  next_skill: commit-message
-  context: Audit and F.I.R.S.T gates pass with no unresolved security findings.
+  next_skill: release-branch
+  context: Use feat(slack): prepare signed music requests as the squash and PR title.
