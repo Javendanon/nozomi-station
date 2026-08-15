@@ -1,7 +1,7 @@
 story_id: e02s01
 spec: e02s01-slack-requests.md
 title: Solicitar canciones desde Slack
-status: failing
+status: passing
 bcps: 8
 risk: P0
 tasks:
@@ -50,7 +50,7 @@ tasks:
     security_verify: no new security findings in affected paths
     risk: P0
     security: high
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -62,7 +62,7 @@ tasks:
     verify: mix precommit && npm --prefix assets test -- js/radio_player.test.mjs
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:

@@ -16,7 +16,8 @@ rm -rf priv/static/hls
 mkdir -p priv/static/hls
 export LIQUIDSOAP_UID="$(id -u)"
 export LIQUIDSOAP_GID="$(id -g)"
-docker compose up -d liquidsoap
+docker compose up -d --wait postgres liquidsoap
+MIX_ENV=test mix ecto.setup
 
 for _ in {1..30}; do
   test -f priv/static/hls/aac.m3u8 && grep -q '^#EXTINF:' priv/static/hls/aac.m3u8 && break

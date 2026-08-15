@@ -46,6 +46,19 @@ if config_env() == :prod do
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
 
+  required_env = fn name ->
+    System.get_env(name) || raise "environment variable #{name} is missing"
+  end
+
+  config :nozomi_station,
+    slack_signing_secret: required_env.("SLACK_SIGNING_SECRET"),
+    slack_bot_token: required_env.("SLACK_BOT_TOKEN"),
+    slack_channel_id: required_env.("SLACK_CHANNEL_ID"),
+    spotify_client_id: required_env.("SPOTIFY_CLIENT_ID"),
+    spotify_client_secret: required_env.("SPOTIFY_CLIENT_SECRET"),
+    youtube_api_key: required_env.("YOUTUBE_API_KEY"),
+    media_dir: System.get_env("MEDIA_DIR", "/var/lib/nozomi/media")
+
   config :nozomi_station, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :nozomi_station, NozomiStationWeb.Endpoint,
