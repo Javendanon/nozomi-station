@@ -5,10 +5,10 @@ captured_at: "2026-08-15T04:52:53-04:00"
 mechanical:
   mix_precommit:
     verdict: PASS
-    tests: 56
+    tests: 57
   coverage:
     verdict: PASS
-    percent: 90.23
+    percent: 90.26
     threshold: 90.0
   javascript:
     verdict: PASS
@@ -35,7 +35,7 @@ integration:
   yt_dlp_metadata_smoke:
     verdict: PASS
     mode: manual UAT outside the test suite
-    evidence: Direct video metadata and ytsearch1 both resolved through the copied cookie jar without a YouTube API key.
+    evidence: Direct metadata, ytsearch1, and a 419630-byte audio download all completed through the copied cookie jar without a YouTube API key.
   test_network_requests: 0
   liquidsoap_config: PASS
   liquidsoap_control: PASS

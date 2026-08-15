@@ -18,10 +18,15 @@ defmodule NozomiStation.Media.Resolver do
   def resolve_search(query), do: resolve_search(query, &fetch/2)
 
   def resolve_search(query, fetch) when is_binary(query) and is_function(fetch, 2) do
-    with {:ok, youtube_id} <- fetch.(:youtube_search, query),
-         {:ok, track} <- fetch.(:youtube, youtube_id) do
-      validate(track)
+    with {:ok, result} <- fetch.(:youtube_search, query) do
+      resolve_search_result(result, fetch)
     end
+  end
+
+  defp resolve_search_result(track, _fetch) when is_map(track), do: validate(track)
+
+  defp resolve_search_result(youtube_id, fetch) when is_binary(youtube_id) do
+    with {:ok, track} <- fetch.(:youtube, youtube_id), do: validate(track)
   end
 
   defp identify(url) do
