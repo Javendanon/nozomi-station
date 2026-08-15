@@ -2,7 +2,7 @@
 
 ## Scope
 
-Diff `main...ae79d51` covering the Slack webhook, signature verification, PostgreSQL event/request persistence, Oban worker, Spotify/YouTube clients, `yt-dlp` preparation, runtime configuration, and CI.
+Full `main...HEAD` branch diff covering the Slack webhook, signature verification, PostgreSQL event/request persistence, Oban worker, Spotify/YouTube clients, `yt-dlp` preparation, runtime configuration, and CI.
 
 ## Verdict
 
@@ -45,7 +45,7 @@ Diff `main...ae79d51` covering the Slack webhook, signature verification, Postgr
 - `mix hex.audit`: no retired packages.
 - Secret-pattern and unsafe-sink scan: clean.
 - 31 Elixir tests and 3 JavaScript tests pass.
-- Product-module line coverage: 90.91%.
+- Product-module line coverage: 90.45%.
 - Signed cold-start UAT: duplicate deliveries produced one event and one Oban job; acknowledgements completed in 0.043 seconds or less.
 
 ## Residual risks

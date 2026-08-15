@@ -129,6 +129,14 @@ defmodule NozomiStation.Media.ResolverTest do
              ProviderClient.fetch(:youtube_search, "missing", fn _options ->
                {:ok, %Req.Response{status: 200, body: %{"items" => []}}}
              end)
+
+    unavailable = fn _options -> {:ok, %Req.Response{status: 503, body: %{}}} end
+
+    assert {:error, :provider_unavailable} =
+             ProviderClient.fetch(:youtube, "missing", unavailable)
+
+    assert {:error, :provider_unavailable} =
+             ProviderClient.fetch(:spotify, "missing", unavailable)
   end
 
   test "uses fixed Spotify and YouTube endpoints to pair a track" do

@@ -14,7 +14,7 @@ phases:
     passed: true
     elixir: 31 tests, 0 failures
     javascript: 3 tests, 0 failures
-    coverage: 90.91% product modules
+    coverage: 90.45% product modules
   terminal_verdict:
     command: mix precommit
     exit_code: 0
