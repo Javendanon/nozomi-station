@@ -31,6 +31,7 @@ The repository is greenfield. Generated Phoenix files dominate line count, so re
 - ✓ Hook unmount removes listeners and destroys its HLS instance.
 - ✓ Continuity verification accepts playlist growth or media-sequence growth, including a full window.
 - ✓ Cold-start and browser UAT evidence is persisted in `e01s01-verify.yaml`.
+- ✓ Product-module coverage is 100%; generated Phoenix scaffolding is explicitly excluded.
 
 ### Scope and clarity — PASS
 

@@ -11,7 +11,20 @@ defmodule NozomiStation.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      test_coverage: [
+        # Generated Phoenix scaffolding is excluded; coverage gates product behavior.
+        ignore_modules: [
+          NozomiStation.Application,
+          NozomiStationWeb.CoreComponents,
+          NozomiStationWeb.Endpoint,
+          NozomiStationWeb.ErrorHTML,
+          NozomiStationWeb.ErrorJSON,
+          NozomiStationWeb.Layouts,
+          NozomiStationWeb.Router,
+          NozomiStationWeb.Telemetry
+        ]
+      ]
     ]
   end
 

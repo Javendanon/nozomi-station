@@ -16,3 +16,10 @@ stories:
     status: todo
   e08s01:
     status: todo
+
+gate_trace:
+  verdict: WAIVED
+  generated_at: "2026-08-15T02:31:57-04:00"
+  rationale: Traceability and blind-spot generator scripts are not present in this greenfield repository; story evidence, task links, and security review were checked directly.
+  heuristic_ratio: 0.0
+  downgrade_applied: false

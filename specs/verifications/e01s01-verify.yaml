@@ -23,6 +23,7 @@ phases:
     passed: true
     elixir: 6 tests, 0 failures
     javascript: 3 tests, 0 failures
+    coverage: 100% across product modules; generated Phoenix scaffolding excluded
   dependencies:
     passed: true
     command: npm audit --prefix assets --omit=dev
