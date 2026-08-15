@@ -1,38 +1,24 @@
 project: Nozomi Station
-active_flow: null
-active_epic: null
-active_story: null
+active_flow: build_epic
+active_epic: e02
+active_story: e02s01
 epic_cycle:
-  step: 8
+  step: 1
   story_bcps: 8
-  audit_result: pass
+  audit_result: null
   completed_steps:
     - 0
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-    - "6(fail: provenance,test-coverage,FIRST)"
-    - "4(audit-fixes)"
-    - "4(repeated-join-fix)"
-    - "4(disable-live-join)"
-    - "6(pass)"
-    - 7
-    - 8
 git:
-  branch: main
+  branch: feat/e02-slack-requests
   base: main
 metrics:
-  story_start: "2026-08-15T01:02:51-04:00"
-release:
+  story_start: "2026-08-15T02:51:57-04:00"
+last_release:
   pr: 1
   url: https://github.com/Javendanon/nozomi-station/pull/1
   merge_commit: 503b8d82307895e88cfdbb9f4ada6b46ee8e6e13
   merged_at: "2026-08-15T06:46:15Z"
   ci_verified: true
-  ci_run: https://github.com/Javendanon/nozomi-station/actions/runs/31870270401
-  registry: not_applicable
 handoff:
   next_skill: survey-context
-  context: e01s01 released and verified on main; select the next release epic.
+  context: Threat model recorded; confirm e02s01 as the active story and its build dependencies.
