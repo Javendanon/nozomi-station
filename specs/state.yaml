@@ -3,7 +3,7 @@ active_flow: build_epic
 active_epic: e02
 active_story: e02s01
 epic_cycle:
-  step: 4
+  step: 5
   story_bcps: 8
   audit_result: null
   completed_steps:
@@ -11,6 +11,7 @@ epic_cycle:
     - 1
     - 2
     - 3
+    - 4
 git:
   branch: feat/e02-slack-requests
   base: main
@@ -23,5 +24,5 @@ last_release:
   merged_at: "2026-08-15T06:46:15Z"
   ci_verified: true
 handoff:
-  next_skill: develop-tdd
-  context: Plan consistency passes and branch preflight is green; begin signed Slack event ingestion.
+  next_skill: verify-work
+  context: All five e02s01 tasks pass locally; run mechanical, security, integration, and UAT verification.
