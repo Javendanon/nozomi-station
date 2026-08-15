@@ -5,16 +5,19 @@ defmodule NozomiStation.Programming.ComplementaryQueueTest do
   alias NozomiStation.Repo
 
   test "fills a ten-track margin and ignores failed candidates" do
-    candidates = candidates(12)
+    candidates = candidates(13)
 
-    resolver = fn candidate -> {:ok, resolved(candidate)} end
+    resolver = fn
+      %{title: "Track 2"} -> {:error, :provider_unavailable}
+      candidate -> {:ok, resolved(candidate)}
+    end
 
     prepare = fn
       "Track-1", _output -> {:error, :preparation_failed}
       youtube_id, {:complementary, id} -> {:ok, "/media/c#{id}-#{youtube_id}.m4a"}
     end
 
-    assert {:ok, %{available: 10, discarded: 1}} =
+    assert {:ok, %{available: 10, discarded: 2}} =
              ComplementaryQueue.fill(candidates, :seed,
                resolver: resolver,
                prepare: prepare
@@ -29,6 +32,8 @@ defmodule NozomiStation.Programming.ComplementaryQueueTest do
                resolver: resolver,
                prepare: prepare
              )
+
+    assert {:ok, %{available: 10, prepared: 0}} = RefillWorker.perform(%Oban.Job{})
   end
 
   test "a skipped complementary track is never selected again" do
@@ -79,6 +84,13 @@ defmodule NozomiStation.Programming.ComplementaryQueueTest do
     assert_received {:fill, ^candidates, :seed}
   end
 
+  test "refill worker does nothing when the margin is full" do
+    assert {:ok, %{available: 10, prepared: 0}} =
+             RefillWorker.run(count: fn -> 10 end)
+
+    assert "programming" == Ecto.Changeset.get_change(RefillWorker.new(%{}), :queue)
+  end
+
   test "uses only rock and 80s tags when there is no mood" do
     request = fn options ->
       send(self(), {:request, options})
@@ -109,6 +121,16 @@ defmodule NozomiStation.Programming.ComplementaryQueueTest do
              [first, second],
              &(&1[:redirect] == false and &1[:receive_timeout] == 10_000)
            )
+  end
+
+  test "ignores unavailable and malformed Last.fm responses" do
+    request = fn options ->
+      if options[:params][:tag] == "rock",
+        do: {:error, :timeout},
+        else: {:ok, %Req.Response{status: 200, body: %{"unexpected" => []}}}
+    end
+
+    assert {:ok, []} = Lastfm.candidates([], 10, request)
   end
 
   defp candidates(count) do

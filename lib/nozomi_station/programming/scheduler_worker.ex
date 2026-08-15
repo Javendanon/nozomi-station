@@ -4,8 +4,10 @@ defmodule NozomiStation.Programming.SchedulerWorker do
   alias NozomiStation.Programming.Scheduler
 
   @impl Oban.Worker
-  def perform(_job) do
-    case Scheduler.run() do
+  def perform(_job), do: run()
+
+  def run(scheduler \\ &Scheduler.run/0) do
+    case scheduler.() do
       {:ok, counts} -> {:ok, counts}
       {:error, reason} -> {:error, reason}
     end

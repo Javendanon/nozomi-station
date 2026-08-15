@@ -1,7 +1,13 @@
 defmodule NozomiStation.Programming.SchedulerTest do
   use NozomiStation.DataCase, async: true
 
-  alias NozomiStation.Programming.{ComplementaryTrack, LiquidsoapClient, Scheduler}
+  alias NozomiStation.Programming.{
+    ComplementaryTrack,
+    LiquidsoapClient,
+    Scheduler,
+    SchedulerWorker
+  }
+
   alias NozomiStation.Repo
   alias NozomiStation.Requests.Request
 
@@ -39,6 +45,16 @@ defmodule NozomiStation.Programming.SchedulerTest do
     assert Repo.reload!(waiting).status == "ready"
   end
 
+  test "scheduler worker preserves success and retry results" do
+    assert {:ok, %{requested: 1}} =
+             SchedulerWorker.run(fn -> {:ok, %{requested: 1}} end)
+
+    assert {:error, :control_unavailable} =
+             SchedulerWorker.run(fn -> {:error, :control_unavailable} end)
+
+    assert "programming" == Ecto.Changeset.get_change(SchedulerWorker.new(%{}), :queue)
+  end
+
   test "maps media paths into allowlisted Liquidsoap commands" do
     command = fn value ->
       send(self(), {:command, value})
@@ -66,6 +82,12 @@ defmodule NozomiStation.Programming.SchedulerTest do
              )
 
     refute_received {:command, "requested.push /host/secret"}
+
+    assert {:error, :invalid_control_response} =
+             LiquidsoapClient.push(:requested, "/host/media/empty.m4a", fn _ -> {:ok, []} end,
+               media_dir: "/host/media",
+               liquidsoap_media_dir: "/media"
+             )
   end
 
   test "reads active request filenames from Liquidsoap metadata" do
@@ -80,6 +102,15 @@ defmodule NozomiStation.Programming.SchedulerTest do
                media_dir: "/host/media",
                liquidsoap_media_dir: "/media"
              )
+  end
+
+  test "ignores requests that finish during control reconciliation" do
+    command = fn
+      "request.all" -> {:ok, ["4"]}
+      "request.metadata 4" -> {:ok, ["No such request."]}
+    end
+
+    assert {:ok, []} = LiquidsoapClient.active_paths(command, [])
   end
 
   defp insert_request(status, path) do
