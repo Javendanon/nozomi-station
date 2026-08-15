@@ -10,6 +10,7 @@ config :nozomi_station, NozomiStation.Repo,
 
 config :nozomi_station, Oban, testing: :manual
 config :nozomi_station, :slack_signing_secret, "test-signing-secret"
+config :nozomi_station, :youtube_api_key, "test-youtube-key"
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
