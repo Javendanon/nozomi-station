@@ -3,7 +3,7 @@ active_flow: build_epic
 active_epic: e03
 active_story: e03s01
 epic_cycle:
-  step: 7
+  step: 8
   story_bcps: 8
   audit_result: pass
   completed_steps:
@@ -14,6 +14,7 @@ epic_cycle:
     - 4
     - "5(pass)"
     - "6(pass)"
+    - 7
 git:
   branch: feat/e03-complementary-programming
   base: main
@@ -21,5 +22,5 @@ metrics:
   story_start: "2026-08-15T03:50:11-04:00"
 release: null
 handoff:
-  next_skill: commit-message
-  context: Audit and F.I.R.S.T gates pass; migration rollback and all high-risk boundaries are verified.
+  next_skill: release-branch
+  context: Open a PR titled feat(programming): maintain prioritized complementary music, then wait for explicit user approval before merge.
