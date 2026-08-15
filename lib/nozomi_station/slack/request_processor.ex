@@ -19,40 +19,53 @@ defmodule NozomiStation.Slack.RequestProcessor do
     prepare = Keyword.fetch!(deps, :prepare)
     reply = Keyword.fetch!(deps, :reply)
 
-    requester = %{
+    result =
+      with {:ok, track} <- resolver.(url),
+           {:ok, request, position} <- prepare.(track, requester(event)) do
+        {:accepted, track, request, position}
+      end
+
+    handle_result(result, event, reply)
+  end
+
+  defp handle_result({:accepted, track, request, position}, event, reply) do
+    message = "Aceptada: #{request.title} · posición #{position}"
+
+    case reply.(event["channel"], event["ts"], message) do
+      :ok ->
+        Logger.info("request_ready youtube_id=#{track.youtube_id} position=#{position}")
+        {:cont, :ok}
+
+      error ->
+        {:halt, error}
+    end
+  end
+
+  defp handle_result({:error, reason}, event, reply) when reason in @permanent_errors do
+    Logger.info("request_rejected reason=#{reason}")
+
+    message =
+      if reason == :duplicate,
+        do: "Rechazada: canción duplicada",
+        else: "Rechazada: la canción no es reproducible"
+
+    case reply.(event["channel"], event["ts"], message) do
+      :ok -> {:cont, :ok}
+      error -> {:halt, error}
+    end
+  end
+
+  defp handle_result({:error, reason}, _event, _reply) do
+    Logger.warning("request_retry reason=#{reason}")
+    {:halt, {:error, reason}}
+  end
+
+  defp requester(event) do
+    %{
       slack_user: event["user"],
       slack_channel: event["channel"],
       thread_ts: event["ts"]
     }
-
-    with {:ok, track} <- resolver.(url),
-         {:ok, request, position} <- prepare.(track, requester),
-         :ok <-
-           reply.(
-             event["channel"],
-             event["ts"],
-             "Aceptada: #{request.title} · posición #{position}"
-           ) do
-      Logger.info("request_ready youtube_id=#{track.youtube_id} position=#{position}")
-      {:cont, :ok}
-    else
-      {:error, reason} when reason in @permanent_errors ->
-        Logger.info("request_rejected reason=#{reason}")
-
-        message =
-          if reason == :duplicate,
-            do: "Rechazada: canción duplicada",
-            else: "Rechazada: la canción no es reproducible"
-
-        case reply.(event["channel"], event["ts"], message) do
-          :ok -> {:cont, :ok}
-          error -> {:halt, error}
-        end
-
-      {:error, reason} ->
-        Logger.warning("request_retry reason=#{reason}")
-        {:halt, {:error, reason}}
-    end
   end
 
   defp processable?(event, channel) do

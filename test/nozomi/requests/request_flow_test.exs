@@ -11,14 +11,7 @@ defmodule NozomiStation.Requests.RequestFlowTest do
       duration_seconds: 200
     }
 
-    runner = fn "yt-dlp", args ->
-      send(self(), {:yt_dlp, args})
-      output = Enum.at(args, Enum.find_index(args, &(&1 == "--output")) + 1)
-      path = String.replace(output, ".%(ext)s", ".m4a")
-      File.mkdir_p!(Path.dirname(path))
-      File.write!(path, "prepared")
-      {"", 0}
-    end
+    runner = &successful_runner/2
 
     requester = %{slack_user: "U01", slack_channel: "C01", thread_ts: "123.45"}
 
@@ -46,15 +39,7 @@ defmodule NozomiStation.Requests.RequestFlowTest do
 
     assert {:error, :preparation_failed} = RequestFlow.prepare(track, requester, failed_runner)
 
-    successful_runner = fn "yt-dlp", args ->
-      output = Enum.at(args, Enum.find_index(args, &(&1 == "--output")) + 1)
-      path = String.replace(output, ".%(ext)s", ".m4a")
-      File.mkdir_p!(Path.dirname(path))
-      File.write!(path, "prepared")
-      {"", 0}
-    end
-
-    assert {:ok, request, 1} = RequestFlow.prepare(track, requester, successful_runner)
+    assert {:ok, request, 1} = RequestFlow.prepare(track, requester, &successful_runner/2)
     assert request.status == "ready"
   end
 
@@ -99,13 +84,7 @@ defmodule NozomiStation.Requests.RequestFlowTest do
 
     requester = %{slack_user: "U02", slack_channel: "C01", thread_ts: "999"}
 
-    runner = fn "yt-dlp", args ->
-      output = Enum.at(args, Enum.find_index(args, &(&1 == "--output")) + 1)
-      path = String.replace(output, ".%(ext)s", ".m4a")
-      File.mkdir_p!(Path.dirname(path))
-      File.write!(path, "prepared")
-      {"", 0}
-    end
+    runner = &successful_runner/2
 
     assert {:error, :duplicate} =
              RequestFlow.prepare(
@@ -127,5 +106,14 @@ defmodule NozomiStation.Requests.RequestFlowTest do
              )
 
     assert request.status == "ready"
+  end
+
+  defp successful_runner("yt-dlp", args) do
+    send(self(), {:yt_dlp, args})
+    output = Enum.at(args, Enum.find_index(args, &(&1 == "--output")) + 1)
+    path = String.replace(output, ".%(ext)s", ".m4a")
+    File.mkdir_p!(Path.dirname(path))
+    File.write!(path, "prepared")
+    {"", 0}
   end
 end

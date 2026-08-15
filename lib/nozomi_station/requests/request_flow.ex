@@ -48,25 +48,25 @@ defmodule NozomiStation.Requests.RequestFlow do
     end
   end
 
-  defp duplicate?(youtube_id) do
-    active? =
-      Repo.exists?(
-        from(request in Request,
-          where: request.youtube_id == ^youtube_id and request.status in @active_statuses
-        )
-      )
+  defp duplicate?(youtube_id), do: active?(youtube_id) or youtube_id in recent_ids()
 
-    recent_ids =
-      Repo.all(
-        from(request in Request,
-          where: request.status == "played",
-          order_by: [desc: request.updated_at, desc: request.id],
-          limit: 10,
-          select: request.youtube_id
-        )
+  defp active?(youtube_id) do
+    Repo.exists?(
+      from(request in Request,
+        where: request.youtube_id == ^youtube_id and request.status in @active_statuses
       )
+    )
+  end
 
-    active? or youtube_id in recent_ids
+  defp recent_ids do
+    Repo.all(
+      from(request in Request,
+        where: request.status == "played",
+        order_by: [desc: request.updated_at, desc: request.id],
+        limit: 10,
+        select: request.youtube_id
+      )
+    )
   end
 
   defp persist(request, attrs), do: request |> Request.changeset(attrs) |> Repo.update()
