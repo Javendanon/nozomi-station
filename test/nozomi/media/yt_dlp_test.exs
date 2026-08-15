@@ -90,6 +90,24 @@ defmodule NozomiStation.Media.YtDlpTest do
     assert_received {:args, ["--cookies", ^path | _]}
   end
 
+  test "resolves yt-dlp search metadata without a second provider call" do
+    track = %{
+      youtube_id: "search_1",
+      title: "Search result",
+      artist: "Artist",
+      duration: 180,
+      live?: false
+    }
+
+    fetch = fn
+      :youtube_search, "Artist Search result" -> {:ok, track}
+      :youtube, _value -> flunk("search metadata triggered a second yt-dlp call")
+    end
+
+    assert {:ok, %{youtube_id: "search_1", duration_seconds: 180}} =
+             Resolver.resolve_search("Artist Search result", fetch)
+  end
+
   test "accepts integer yt-dlp durations through the resolver" do
     fetch = fn :youtube, "integer_1" ->
       {:ok,
