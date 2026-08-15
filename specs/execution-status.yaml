@@ -1,6 +1,6 @@
 stories:
   e01s01:
-    status: todo
+    status: in_progress
     started_at: "2026-08-15T01:02:51-04:00"
   e02s01:
     status: todo
