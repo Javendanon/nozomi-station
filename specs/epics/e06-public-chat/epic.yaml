@@ -1,0 +1,12 @@
+id: e06
+title: Chat público seudónimo
+wsjf: 2.5
+total_bcps: 5
+status: todo
+stories:
+  - id: e06s01
+    title: Conversar con una identidad ferroviaria
+    bcps: 5
+    status: todo
+    spec: e06s01-public-chat.md
+    tasks: e06s01-tasks.yaml

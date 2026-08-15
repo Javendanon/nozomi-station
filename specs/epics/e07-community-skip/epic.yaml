@@ -1,0 +1,12 @@
+id: e07
+title: Votación comunitaria
+wsjf: 2.7
+total_bcps: 5
+status: todo
+stories:
+  - id: e07s01
+    title: Saltar una canción por mayoría
+    bcps: 5
+    status: todo
+    spec: e07s01-community-skip.md
+    tasks: e07s01-tasks.yaml
