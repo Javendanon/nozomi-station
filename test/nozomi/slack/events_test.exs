@@ -27,6 +27,15 @@ defmodule NozomiStation.Slack.EventsTest do
     assert EventStore.insert(event) == :duplicate
   end
 
+  test "rolls back event acceptance when enqueueing fails" do
+    event = %{"event_id" => "Ev-rollback", "event" => %{"text" => "hello"}}
+
+    assert {:error, :queue_unavailable} =
+             EventStore.accept(event, fn _stored -> {:error, :queue_unavailable} end)
+
+    assert :accepted = EventStore.accept(event, fn _stored -> {:ok, %{id: 1}} end)
+  end
+
   test "enqueues only the first delivery of an event" do
     {:ok, seen} = Agent.start_link(fn -> MapSet.new() end)
 
