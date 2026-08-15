@@ -8,7 +8,7 @@ Radio comunitaria inspirada en el Shinkansen. Todos los oyentes comparten una em
 
 El primer recorrido funcional está listo: Liquidsoap emite audio AAC a 192 kbps, Phoenix publica el manifiesto HLS y el navegador se conecta mediante HLS nativo o `hls.js`.
 
-La fuente actual es un tono de prueba de 440 Hz. La recepción de solicitudes desde Slack está en desarrollo; su conexión con Liquidsoap, la programación musical, el chat y las herramientas de operación pertenecen a los siguientes recorridos.
+La fuente actual es un tono de prueba de 440 Hz. Slack ya acepta, valida, prepara y encola solicitudes; su conexión con Liquidsoap, la programación musical, el chat y las herramientas de operación pertenecen a los siguientes recorridos.
 
 ## Arquitectura
 
