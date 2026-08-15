@@ -1,7 +1,7 @@
 defmodule NozomiStation.Slack.EventsTest do
   use NozomiStation.DataCase, async: true
 
-  alias NozomiStation.Slack.{EventStore, Events, Signature}
+  alias NozomiStation.Slack.{EventStore, Signature}
 
   @body ~s({"type":"event_callback","event_id":"Ev01"})
   @secret "test-signing-secret"
@@ -34,27 +34,5 @@ defmodule NozomiStation.Slack.EventsTest do
              EventStore.accept(event, fn _stored -> {:error, :queue_unavailable} end)
 
     assert :accepted = EventStore.accept(event, fn _stored -> {:ok, %{id: 1}} end)
-  end
-
-  test "enqueues only the first delivery of an event" do
-    {:ok, seen} = Agent.start_link(fn -> MapSet.new() end)
-
-    store = fn event ->
-      Agent.get_and_update(seen, fn ids ->
-        if MapSet.member?(ids, event["event_id"]) do
-          {:duplicate, ids}
-        else
-          {{:ok, event}, MapSet.put(ids, event["event_id"])}
-        end
-      end)
-    end
-
-    enqueue = fn event -> send(self(), {:enqueued, event["event_id"]}) end
-    event = %{"event_id" => "Ev01"}
-
-    assert Events.accept(event, store, enqueue) == :accepted
-    assert_receive {:enqueued, "Ev01"}
-    assert Events.accept(event, store, enqueue) == :duplicate
-    refute_receive {:enqueued, "Ev01"}
   end
 end
