@@ -7,4 +7,4 @@ services:
     command: /etc/liquidsoap/radio.liq
     volumes:
       - ./config/liquidsoap:/etc/liquidsoap:ro
-      - ./tmp/hls:/hls
+      - ./priv/static/hls:/hls
