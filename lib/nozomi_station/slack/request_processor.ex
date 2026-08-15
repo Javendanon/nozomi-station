@@ -1,5 +1,6 @@
 defmodule NozomiStation.Slack.RequestProcessor do
   @url ~r{https://[^\s>|]+}
+  @permanent_errors [:duplicate, :invalid_duration, :invalid_url, :not_playable, :unsupported_url]
 
   def process(%{"event" => event}, deps) do
     if processable?(event, Keyword.fetch!(deps, :channel)) do
@@ -32,7 +33,19 @@ defmodule NozomiStation.Slack.RequestProcessor do
            ) do
       {:cont, :ok}
     else
-      {:error, reason} -> {:halt, {:error, reason}}
+      {:error, reason} when reason in @permanent_errors ->
+        message =
+          if reason == :duplicate,
+            do: "Rechazada: canción duplicada",
+            else: "Rechazada: la canción no es reproducible"
+
+        case reply.(event["channel"], event["ts"], message) do
+          :ok -> {:cont, :ok}
+          error -> {:halt, error}
+        end
+
+      {:error, reason} ->
+        {:halt, {:error, reason}}
     end
   end
 
