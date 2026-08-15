@@ -65,7 +65,7 @@ phases:
         passed: true
       - step: Press «Subir al tren» a second time
         expected: Playback stays live without duplicating players or interrupting audio.
-        actual: User observed a one-second «Conectando» flash and an audible interruption before returning live.
+        actual: After the first fix, user still observed a shorter status change and interruption.
         passed: false
   gaps:
     closed: false

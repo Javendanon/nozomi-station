@@ -3,7 +3,7 @@ active_flow: build_epic
 active_epic: e01
 active_story: e01s01
 epic_cycle:
-  step: 5
+  step: 4
   story_bcps: 8
   audit_result: fail
   completed_steps:
@@ -22,5 +22,5 @@ git:
 metrics:
   story_start: "2026-08-15T01:02:51-04:00"
 handoff:
-  next_skill: verify-work
-  context: Repeated join is now idempotent and automated checks pass; awaiting focused browser UAT.
+  next_skill: develop-tdd
+  context: Repeated join still causes a brief interruption; disable the join control once playback is live.
