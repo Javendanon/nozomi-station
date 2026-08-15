@@ -1,0 +1,39 @@
+name: Test Build Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        with:
+          otp-version: "28.0"
+          elixir-version: "1.18.4"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: assets/package-lock.json
+      - run: mix deps.get
+      - run: npm ci --prefix assets
+      - run: mix precommit
+      - run: mix test --cover
+      - run: npm --prefix assets test -- js/radio_player.test.mjs
+      - run: bash scripts/verify-liquidsoap-hls.sh
+      - run: bash scripts/verify-hls-sync.sh
