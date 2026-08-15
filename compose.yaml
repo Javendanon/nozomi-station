@@ -1,0 +1,10 @@
+services:
+  liquidsoap:
+    image: savonet/liquidsoap:v2.4.5
+    user: "100:101"
+    init: true
+    restart: unless-stopped
+    command: /etc/liquidsoap/radio.liq
+    volumes:
+      - ./config/liquidsoap:/etc/liquidsoap:ro
+      - ./tmp/hls:/hls

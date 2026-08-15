@@ -36,6 +36,7 @@ test -n "$media_playlist"
 grep -q '^#EXTINF:' "$media_playlist"
 segment=$(find tmp/hls -type f \( -name '*.ts' -o -name '*.m4s' \) -print -quit)
 test -n "$segment"
-test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$segment")" = "aac"
+ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$segment" |
+  grep -qx 'aac'
 
 echo "liquidsoap-hls: OK"
