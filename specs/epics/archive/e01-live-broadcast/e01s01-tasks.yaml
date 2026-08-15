@@ -1,7 +1,7 @@
 story_id: e01s01
 spec: e01s01-live-broadcast.md
 title: Escuchar una emisión continua compartida
-status: passing
+status: done
 bcps: 8
 risk: P0
 tasks:

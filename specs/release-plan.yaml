@@ -8,7 +8,7 @@ release:
 epics:
   - id: e01
     title: Emisión continua y sincronizada
-    capsule_dir: epics/e01-live-broadcast
+    capsule_dir: epics/archive/e01-live-broadcast
     wsjf: 4.0
     bcps: 8
   - id: e02
