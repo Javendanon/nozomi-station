@@ -7,11 +7,11 @@ risk: P0
 tasks:
   - id: 1
     description: Recibir y persistir eventos Slack firmados de forma idempotente antes de encolar Oban.
-    verify: mix test test/nozomi/slack/events_test.exs && test -f specs/security/epics/e02/THREAT_MODEL.md
+    verify: mix test test/nozomi/slack/events_test.exs test/nozomi_station_web/controllers/slack_event_controller_test.exs && test -f specs/security/epics/e02/THREAT_MODEL.md
     security_verify: no new security findings in affected paths
     risk: P0
     security: high
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
