@@ -8,7 +8,8 @@ stories:
     started_at: "2026-08-15T02:51:57-04:00"
     completed_at: "2026-08-15T07:41:13Z"
   e03s01:
-    status: todo
+    status: in_progress
+    started_at: "2026-08-15T03:50:11-04:00"
   e04s01:
     status: todo
   e05s01:
