@@ -13,14 +13,14 @@ const audio = nativeHls => ({
 
 const eventTarget = properties => {
   const listeners = new Map()
-
-  return {
+  const target = {
     ...properties,
     addEventListener: (event, callback) => listeners.set(event, callback),
     removeEventListener: event => listeners.delete(event),
-    trigger: event => listeners.get(event)?.(),
     listensTo: event => listeners.has(event),
   }
+  target.trigger = event => target.disabled ? undefined : listeners.get(event)?.()
+  return target
 }
 
 test("uses native HLS support when the browser provides it", async () => {
@@ -66,10 +66,11 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
   let destroyed = 0
 
   hook.mounted()
-  hook.connected = true
   hook.hls = {destroy: () => destroyed++}
-  await button.trigger("click")
+  await streamAudio.trigger("playing")
 
+  assert.equal(button.disabled, true)
+  await button.trigger("click")
   assert.equal(destroyed, 0)
   assert.equal(status.textContent, "En vivo")
   assert.equal(button.listensTo("click"), true)
