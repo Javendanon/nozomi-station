@@ -6,7 +6,11 @@ config :nozomi_station,
   slack_channel_id: System.get_env("SLACK_CHANNEL_ID"),
   spotify_client_id: System.get_env("SPOTIFY_CLIENT_ID"),
   spotify_client_secret: System.get_env("SPOTIFY_CLIENT_SECRET"),
-  youtube_api_key: System.get_env("YOUTUBE_API_KEY")
+  lastfm_api_key: System.get_env("LASTFM_API_KEY"),
+  liquidsoap_host: System.get_env("LIQUIDSOAP_HOST", "127.0.0.1"),
+  liquidsoap_port: String.to_integer(System.get_env("LIQUIDSOAP_PORT", "1234")),
+  liquidsoap_media_dir: "/media",
+  ytdlp_cookies_file: System.get_env("YTDLP_COOKIES_FILE", "cookies/cookies.txt")
 
 config :nozomi_station, NozomiStation.Repo,
   username: "postgres",

@@ -8,12 +8,13 @@ Radio comunitaria inspirada en el Shinkansen. Todos los oyentes comparten una em
 
 El primer recorrido funcional está listo: Liquidsoap emite audio AAC a 192 kbps, Phoenix publica el manifiesto HLS y el navegador se conecta mediante HLS nativo o `hls.js`.
 
-La fuente actual es un tono de prueba de 440 Hz. Slack ya acepta, valida, prepara y encola solicitudes; su conexión con Liquidsoap, la programación musical, el chat y las herramientas de operación pertenecen a los siguientes recorridos.
+Slack acepta, valida y prepara solicitudes. La programación complementaria mantiene diez pistas listas desde Last.fm y YouTube; Liquidsoap prioriza solicitudes en límites de canción y conserva el tono de 440 Hz como último respaldo.
 
 ## Arquitectura
 
 ```text
 Slack ──evento firmado──> Phoenix ──Oban/PostgreSQL──> resolución y preparación
+Last.fm/yt-dlp ──candidatas──> programación ──control local──> Liquidsoap
 Liquidsoap ──escribe──> priv/static/hls ──sirve──> Phoenix ──HLS──> navegador
 ```
 
@@ -39,7 +40,7 @@ cd nozomi-station
 docker compose up -d --wait postgres
 npm ci --prefix assets
 mix setup
-mkdir -p priv/static/hls
+mkdir -p priv/static/hls tmp/media
 LIQUIDSOAP_UID="$(id -u)" LIQUIDSOAP_GID="$(id -g)" docker compose up -d liquidsoap
 mix phx.server
 ```
@@ -48,7 +49,7 @@ Abre [http://localhost:4000](http://localhost:4000) y pulsa **Subir al tren**. E
 
 ## Configuración de Slack
 
-La integración necesita una app de Slack suscrita al endpoint `POST /slack/events` y credenciales de Spotify y YouTube:
+La integración necesita una app de Slack suscrita al endpoint `POST /slack/events`, credenciales de Spotify y Last.fm, y `yt-dlp` disponible:
 
 ```bash
 export SLACK_SIGNING_SECRET="..."
@@ -56,10 +57,15 @@ export SLACK_BOT_TOKEN="xoxb-..."
 export SLACK_CHANNEL_ID="C..."
 export SPOTIFY_CLIENT_ID="..."
 export SPOTIFY_CLIENT_SECRET="..."
-export YOUTUBE_API_KEY="..."
+export LASTFM_API_KEY="..."
+
+# Opcional en producción: sesión para bloqueos anti-bot de yt-dlp.
+export YTDLP_COOKIES_FILE="/ruta/privada/cookies.txt"
+# El cliente mweb funciona por defecto; permite cambiarlo si YouTube vuelve a bloquearlo.
+export YTDLP_EXTRACTOR_ARGS="youtube:player_client=mweb"
 ```
 
-No guardes estas variables en el repositorio. En producción también son obligatorios `DATABASE_URL` y `SECRET_KEY_BASE`.
+Nozomi usa `yt-dlp` directamente para búsqueda, metadatos y descarga; no necesita una API key de YouTube. En desarrollo detecta automáticamente `cookies/cookies.txt`, que está ignorado por Git. No guardes estas variables ni las cookies en el repositorio. En producción también son obligatorios `DATABASE_URL` y `SECRET_KEY_BASE`.
 
 Para detener los servicios:
 
@@ -82,11 +88,12 @@ Integración HLS:
 ```bash
 bash scripts/verify-liquidsoap-hls.sh
 bash scripts/verify-hls-sync.sh
+bash scripts/verify-programming-priority.sh
 ```
 
 La integración HLS comprueba el códec, la continuidad del manifiesto y que dos clientes simultáneos compartan la misma ventana de emisión.
 
-En CI, estas comprobaciones solo se ejecutan cuando un PR modifica Liquidsoap, HLS o el reproductor. También pueden lanzarse manualmente desde GitHub Actions.
+El CI automático ejecuta las pruebas rápidas en cada PR. Las integraciones Docker de HLS y prioridad se ejecutan localmente antes de abrir o actualizar el PR; GitHub Actions las conserva como un workflow manual para la verificación final de una release.
 
 ## Estructura
 
@@ -96,6 +103,7 @@ config/liquidsoap/radio.liq        emisión Liquidsoap
 lib/nozomi_station/slack/           webhook y procesamiento asíncrono
 lib/nozomi_station/media/           resolución y preparación de medios
 lib/nozomi_station/requests/        cola persistente de solicitudes
+lib/nozomi_station/programming/     mood, margen y despacho a Liquidsoap
 lib/nozomi_station_web/live/        interfaz LiveView
 scripts/                            verificaciones ejecutables
 specs/                              alcance, epics, ADR y evidencias
@@ -103,7 +111,6 @@ specs/                              alcance, epics, ADR y evidencias
 
 ## Próximos recorridos
 
-1. Solicitudes de canciones desde Slack.
-2. Programación complementaria y transiciones ferroviarias.
-3. Reproductor público, chat y votación comunitaria.
-4. Operación, recuperación y despliegue en VPS.
+1. Transiciones e interludios ferroviarios.
+2. Reproductor público, chat y votación comunitaria.
+3. Operación, recuperación y despliegue en VPS.

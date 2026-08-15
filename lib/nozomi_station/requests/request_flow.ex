@@ -5,7 +5,7 @@ defmodule NozomiStation.Requests.RequestFlow do
   alias NozomiStation.Repo
   alias NozomiStation.Requests.Request
 
-  @active_statuses ["preparing", "ready"]
+  @active_statuses ["preparing", "ready", "queued"]
 
   def prepare(track, requester) do
     prepare_with(track, requester, &Preparer.prepare/2)

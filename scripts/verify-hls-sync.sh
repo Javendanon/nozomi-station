@@ -2,7 +2,7 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-mkdir -p tmp
+mkdir -p tmp tmp/media
 port=4101
 server_pid=""
 postgres_was_running=$(docker compose ps --status running --services | grep -qx postgres && echo yes || true)

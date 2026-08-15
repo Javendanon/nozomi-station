@@ -24,6 +24,9 @@ defmodule NozomiStation.Requests.RequestFlowTest do
     assert "--no-playlist" in args
 
     assert {:error, :duplicate} = RequestFlow.prepare(track, requester, runner)
+
+    request |> Request.changeset(%{status: "queued"}) |> Repo.update!()
+    assert {:error, :duplicate} = RequestFlow.prepare(track, requester, runner)
   end
 
   test "releases the duplicate guard after preparation fails" do

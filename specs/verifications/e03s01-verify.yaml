@@ -1,0 +1,77 @@
+story_id: e03s01
+verdict: PASS
+captured_at: "2026-08-15T04:52:53-04:00"
+
+mechanical:
+  mix_precommit:
+    verdict: PASS
+    tests: 57
+  coverage:
+    verdict: PASS
+    percent: 90.11
+    threshold: 90.0
+  javascript:
+    verdict: PASS
+    tests: 3
+  dependencies:
+    npm_audit: 0 vulnerabilities
+    hex_audit: no retired packages
+
+acceptance:
+  empty_start:
+    verdict: PASS
+    evidence: ComplementaryQueue prepares ten tracks from rock and 80s seed candidates and continues after candidate failures.
+  recent_mood:
+    verdict: PASS
+    evidence: Mood selects IDs 23 through 4 after excluding newer skipped and failed requests from a 25-request fixture.
+  requested_priority:
+    verdict: PASS
+    evidence: A real six-second complementary file completed before the queued requested file switched in; observed boundary wait was six seconds.
+  failed_candidate:
+    verdict: PASS
+    evidence: A provider failure and a preparation failure were discarded while the margin still reached ten.
+
+integration:
+  yt_dlp_metadata_smoke:
+    verdict: PASS
+    mode: manual UAT outside the test suite
+    evidence: Direct metadata, ytsearch1, and a 419630-byte audio download all completed through the copied cookie jar without a YouTube API key.
+  test_network_requests: 0
+  liquidsoap_config: PASS
+  liquidsoap_control: PASS
+  loopback_binding: 127.0.0.1:1234
+  hls_codec: AAC 192 kbps
+  hls_sync_regression: PASS
+  player_regression: PASS
+
+security:
+  verdict: PASS
+  high_findings: 0
+  controls:
+    - fixed HTTPS Last.fm endpoint
+    - mocked yt-dlp JSON duration and live validation before preparation
+    - integer-derived media paths
+    - path traversal and whitespace rejection
+    - fixed Liquidsoap command allowlist
+    - host-loopback-only control publication
+
+uat:
+  method: automated local cold-start plus real yt-dlp downloads and Liquidsoap playback
+  localhost: http://localhost:4000 returned 200 with a progressing HLS playlist
+  real_tracks:
+    - New Order - Blue Monday
+    - The Cure - Just Like Heaven
+    - a-ha - Take On Me
+  queue_state: 3 queued rows and Liquidsoap request IDs 0, 1, 2
+  reconciliation: Space-delimited request IDs and idle initial_uri metadata preserved all three queued rows.
+  signed: true
+  perceptual_browser_step: not_required
+  rationale: Real downloads, database rows, Liquidsoap queue IDs, engine switches, and active HLS output provide direct evidence.
+
+skips:
+  - item: Real Last.fm credential smoke
+    reason: A Last.fm key is not available in the test environment; fixed-host contract tests cover requests and responses.
+  - item: Full Liquidsoap crash recovery
+    reason: Explicitly assigned to e08 by ADR-0003.
+  - item: Trace and blind-spot generator scripts
+    reason: Scripts are not present; task links and evidence were checked directly.

@@ -56,8 +56,12 @@ if config_env() == :prod do
     slack_channel_id: required_env.("SLACK_CHANNEL_ID"),
     spotify_client_id: required_env.("SPOTIFY_CLIENT_ID"),
     spotify_client_secret: required_env.("SPOTIFY_CLIENT_SECRET"),
-    youtube_api_key: required_env.("YOUTUBE_API_KEY"),
-    media_dir: System.get_env("MEDIA_DIR", "/var/lib/nozomi/media")
+    lastfm_api_key: required_env.("LASTFM_API_KEY"),
+    media_dir: System.get_env("MEDIA_DIR", "/var/lib/nozomi/media"),
+    liquidsoap_host: System.get_env("LIQUIDSOAP_HOST", "127.0.0.1"),
+    liquidsoap_port: String.to_integer(System.get_env("LIQUIDSOAP_PORT", "1234")),
+    liquidsoap_media_dir: System.get_env("LIQUIDSOAP_MEDIA_DIR", "/media"),
+    ytdlp_cookies_file: System.get_env("YTDLP_COOKIES_FILE")
 
   config :nozomi_station, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 

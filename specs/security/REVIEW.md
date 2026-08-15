@@ -1,56 +1,70 @@
-# Security review: e02s01 Slack requests
-
-## Scope
-
-Full `main...HEAD` branch diff covering the Slack webhook, signature verification, PostgreSQL event/request persistence, Oban worker, Spotify/YouTube clients, `yt-dlp` preparation, runtime configuration, and CI.
+# Security review — e03s01 complementary programming
 
 ## Verdict
 
-**PASS** — no unresolved HIGH findings with confidence 8 or greater.
+**PASS** — no unresolved HIGH findings.
 
-## Trust-boundary review
+## Scope
 
-### Slack webhook
+Full `main...HEAD` branch diff: Last.fm recommendations, yt-dlp JSON and cookie handling, complementary persistence, periodic Oban jobs, Liquidsoap control queues, runtime configuration, migrations, scripts, and tests.
 
-- Signature uses HMAC-SHA256 over the exact raw body and Slack timestamp.
-- Constant-time comparison is used after a length check.
-- Requests older or newer than five minutes are rejected.
-- Missing headers or signing secret fail closed.
-- A unique PostgreSQL constraint and one transaction prevent duplicate events or orphaned jobs.
+## Findings
 
-### External HTTP
+### External providers — PASS
 
-- User URLs are parsed into validated provider identifiers.
-- Req calls use fixed Slack, Spotify, and Google API hosts.
-- Redirect following is disabled.
-- Request timeouts are bounded.
-- Provider credentials come from runtime environment variables and are not logged.
+- Last.fm requests use the constant HTTPS endpoint `https://ws.audioscrobbler.com/2.0/`.
+- Last.fm candidate values enter a bounded `ytsearch1:` argument, never a shell or URL host.
+- Redirects are disabled for HTTP providers and all external work has explicit timeout bounds.
+- yt-dlp receives argument vectors only; YouTube IDs are allowlisted and searches are capped at 500 bytes.
+- Missing or malformed yt-dlp JSON is discarded rather than executed or persisted.
+- Every candidate passes duration and live-stream validation before preparation.
+- No provider response, cookie value, or token is logged.
 
-### Process and filesystem
+### Liquidsoap control — PASS
 
-- `yt-dlp` receives an argument vector through `System.cmd`; no shell evaluates user input.
-- Output paths derive only from database integer IDs.
-- A request becomes ready only when the expected file exists.
-- Media execution is bounded to 120 seconds and failures release the active duplicate guard.
+- Docker publishes exactly one control port as `127.0.0.1:1234:1234`.
+- Liquidsoap binds inside its container; no host-public interface is exposed.
+- Queue names are compile-time atoms restricted to `requested` and `complementary`.
+- Metadata commands accept only numeric request IDs returned by Liquidsoap.
+- Media paths must be descendants of the configured root and reject traversal, whitespace, and line breaks.
+- Control responses must terminate correctly and are parsed without atom creation or code evaluation.
+- TCP calls have a one-second timeout and one bounded retry.
 
-### Data and persistence
+### Filesystem and process execution — PASS
 
-- Ecto queries are parameterized; no raw SQL contains attacker input.
-- Event payloads are stored as JSON maps, not deserialized executable terms.
-- Active duplicate exclusion is enforced with a partial unique database index.
+- Complementary filenames use integer database IDs (`c<ID>.m4a`).
+- Liquidsoap receives the media mount read-only.
+- yt-dlp uses one shared runner for metadata and downloads, without a shell, with timeout and size limits.
+- Preparation removes any stale target before execution, preventing false success after database resets.
+- Temporary cleanup after playback remains assigned to e08 and is not weakened here.
 
-## Automated evidence
+### Persistence and scheduling — PASS
 
+- Unique YouTube IDs prevent repeated complementary selection, including skipped tracks.
+- The request partial unique index now includes `queued`, closing the dispatch duplicate window.
+- Scheduler state changes occur only after an acknowledged Liquidsoap push.
+- Provider or control failures preserve retryable durable state.
+- Oban jobs are unique within their one-minute cadence.
+
+### Secrets and dependencies — PASS
+
+- `LASTFM_API_KEY` is required only through runtime environment configuration; no YouTube API key is required.
+- `/cookies/` is ignored by Git; the copied jar is mode `0600` and never enters the diff.
+- Tests use injected runners and local fixtures with zero network requests.
+- No credential values, private keys, package additions, unsafe deserialization, raw SQL interpolation, or dynamic atoms appear in the diff.
 - `npm audit --omit=dev`: zero vulnerabilities.
 - `mix hex.audit`: no retired packages.
-- Secret-pattern and unsafe-sink scan: clean.
-- 31 Elixir tests and 3 JavaScript tests pass.
-- Product-module line coverage: 90.45%.
-- Signed cold-start UAT: duplicate deliveries produced one event and one Oban job; acknowledgements completed in 0.043 seconds or less.
 
 ## Residual risks
 
-- Real Slack, Spotify, YouTube, and `yt-dlp` smoke testing requires credentials and a permitted media source. Tests use deterministic boundary fakes.
-- Downloading and retransmitting third-party media retains the licensing and terms-of-service risk accepted in product scope.
+- Other processes running as the same VPS user can access the loopback control port. Process isolation and firewall hardening belong to e08.
+- A crash between control acknowledgement and database update may replay one file. ADR-0003 assigns exact crash reconciliation to e08.
+- Session cookies can expire or trigger stricter YouTube behavior; removing the cookie configuration restores anonymous yt-dlp access.
+- Music licensing and provider terms remain the accepted product-level risk.
 
-Neither residual item is an exploitable code vulnerability. No security exception is required.
+## Evidence
+
+- `specs/security/epics/e03/THREAT_MODEL.md`
+- `specs/verifications/e03s01-verify.yaml`
+- `specs/verifications/NFR-e03s01.json`
+- `scripts/verify-programming-priority.sh`

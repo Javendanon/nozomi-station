@@ -171,10 +171,10 @@ prior_art:
       una cuenta Premium y está limitado para proyectos de prueba desde 2026.
   - candidate: YouTube Data API
     source: https://developers.google.com/youtube/v3/docs/videos/list
-    verdict: adopt
+    verdict: reject
     notes: >-
-      Permite buscar candidatos y verificar duración y estado de directo antes
-      de preparar una solicitud.
+      ADR-0004 eliminó la API key y la cuota duplicada; yt-dlp entrega búsqueda,
+      duración y estado de directo además de preparar el audio.
   - candidate: yt-dlp
     source: https://github.com/yt-dlp/yt-dlp
     verdict: adopt

@@ -12,12 +12,14 @@ config=$(docker compose config --format json)
 python3 -c '
 import json, sys
 service = json.load(sys.stdin)["services"]["liquidsoap"]
-assert not service.get("ports"), "Liquidsoap must not publish ports"
+ports = service.get("ports", [])
+assert len(ports) == 1, "Liquidsoap may publish only its local control port"
+assert ports[0].get("host_ip") == "127.0.0.1" and ports[0].get("target") == 1234, "Liquidsoap control must bind host loopback"
 assert service.get("user") not in ("0", "root"), "Liquidsoap must not run as root"
 ' <<<"$config"
 
 rm -rf priv/static/hls
-mkdir -p priv/static/hls
+mkdir -p priv/static/hls tmp/media
 export LIQUIDSOAP_UID="$(id -u)"
 export LIQUIDSOAP_GID="$(id -g)"
 docker compose up -d liquidsoap
