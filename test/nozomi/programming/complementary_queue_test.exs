@@ -7,13 +7,11 @@ defmodule NozomiStation.Programming.ComplementaryQueueTest do
   test "fills a ten-track margin and ignores failed candidates" do
     candidates = candidates(12)
 
-    resolver = fn
-      %{title: "Track 1"} -> {:error, :provider_unavailable}
-      candidate -> {:ok, resolved(candidate)}
-    end
+    resolver = fn candidate -> {:ok, resolved(candidate)} end
 
-    prepare = fn youtube_id, {:complementary, id} ->
-      {:ok, "/media/c#{id}-#{youtube_id}.m4a"}
+    prepare = fn
+      "Track-1", _output -> {:error, :preparation_failed}
+      youtube_id, {:complementary, id} -> {:ok, "/media/c#{id}-#{youtube_id}.m4a"}
     end
 
     assert {:ok, %{available: 10, discarded: 1}} =

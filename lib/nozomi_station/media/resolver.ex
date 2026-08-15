@@ -6,13 +6,15 @@ defmodule NozomiStation.Media.Resolver do
 
   def resolve(url, fetch) when is_binary(url) and is_function(fetch, 2) do
     with {:ok, provider, id} <- identify(url),
-         {:ok, track} <- resolve_provider(provider, id, fetch),
-         {:ok, seconds} <- duration_seconds(track.duration),
-         true <- not track.live? and seconds <= @max_duration_seconds do
-      {:ok, track |> Map.delete(:duration) |> Map.put(:duration_seconds, seconds)}
-    else
-      false -> {:error, :not_playable}
-      error -> error
+         {:ok, track} <- resolve_provider(provider, id, fetch) do
+      validate(track)
+    end
+  end
+
+  def resolve_search(query, fetch) when is_binary(query) and is_function(fetch, 2) do
+    with {:ok, youtube_id} <- fetch.(:youtube_search, query),
+         {:ok, track} <- fetch.(:youtube, youtube_id) do
+      validate(track)
     end
   end
 
@@ -49,6 +51,16 @@ defmodule NozomiStation.Media.Resolver do
   end
 
   defp youtube(_), do: {:error, :invalid_url}
+
+  defp validate(track) do
+    with {:ok, seconds} <- duration_seconds(track.duration),
+         true <- not track.live? and seconds <= @max_duration_seconds do
+      {:ok, track |> Map.delete(:duration) |> Map.put(:duration_seconds, seconds)}
+    else
+      false -> {:error, :not_playable}
+      error -> error
+    end
+  end
 
   defp duration_seconds(duration) do
     case Regex.named_captures(@duration, duration) do

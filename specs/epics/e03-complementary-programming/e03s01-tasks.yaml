@@ -7,7 +7,7 @@ tasks:
     description: Persistir pistas complementarias y rellenar un margen de diez con semillas o candidatas de mood.
     verify: mix test test/nozomi/programming/complementary_queue_test.exs
     bcps: 3
-    status: todo
+    status: passing
   - id: 2
     description: Derivar mood solo de las últimas veinte solicitudes reproducibles y no saltadas.
     verify: mix test test/nozomi/programming/mood_test.exs

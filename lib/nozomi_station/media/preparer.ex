@@ -1,8 +1,8 @@
 defmodule NozomiStation.Media.Preparer do
   @timeout 120_000
 
-  def prepare(youtube_id, request_id, runner \\ &run/2) do
-    base = Path.join(media_dir(), Integer.to_string(request_id))
+  def prepare(youtube_id, output, runner \\ &run/2) do
+    base = Path.join(media_dir(), output_name(output))
     File.mkdir_p!(Path.dirname(base))
 
     args = [
@@ -28,6 +28,9 @@ defmodule NozomiStation.Media.Preparer do
         {:error, :preparation_failed}
     end
   end
+
+  defp output_name(id) when is_integer(id), do: Integer.to_string(id)
+  defp output_name({:complementary, id}) when is_integer(id), do: "c#{id}"
 
   defp run(command, args) do
     task = Task.async(fn -> System.cmd(command, args, stderr_to_stdout: true) end)
