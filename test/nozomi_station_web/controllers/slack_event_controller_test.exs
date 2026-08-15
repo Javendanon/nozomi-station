@@ -25,7 +25,7 @@ defmodule NozomiStationWeb.SlackEventControllerTest do
     assert_enqueued(worker: RequestWorker, args: %{"event_id" => "Ev-controller"})
 
     assert signed_post(build_conn(), body).status == 202
-    assert [_job] = all_enqueued(worker: RequestWorker)
+    assert [_job] = all_enqueued(worker: RequestWorker, args: %{"event_id" => "Ev-controller"})
   end
 
   test "rejects a signed unsupported payload", %{conn: conn} do
