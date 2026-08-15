@@ -5,12 +5,18 @@ defmodule NozomiStation.Media.YtDlpTest do
 
   setup do
     previous_env = System.get_env("YTDLP_COOKIES_FILE")
+    previous_extractor = System.get_env("YTDLP_EXTRACTOR_ARGS")
     previous_config = Application.get_env(:nozomi_station, :ytdlp_cookies_file)
+    System.delete_env("YTDLP_EXTRACTOR_ARGS")
 
     on_exit(fn ->
       if previous_env,
         do: System.put_env("YTDLP_COOKIES_FILE", previous_env),
         else: System.delete_env("YTDLP_COOKIES_FILE")
+
+      if previous_extractor,
+        do: System.put_env("YTDLP_EXTRACTOR_ARGS", previous_extractor),
+        else: System.delete_env("YTDLP_EXTRACTOR_ARGS")
 
       if previous_config,
         do: Application.put_env(:nozomi_station, :ytdlp_cookies_file, previous_config),
@@ -44,6 +50,10 @@ defmodule NozomiStation.Media.YtDlpTest do
     assert_received {:args, args}
     assert "--dump-single-json" in args
     assert "--skip-download" in args
+
+    assert Enum.chunk_every(args, 2, 1, :discard)
+           |> Enum.any?(&(&1 == ["--extractor-args", "youtube:player_client=mweb"]))
+
     assert List.last(args) == "ytsearch1:New Order Blue Monday"
   end
 

@@ -24,11 +24,22 @@ defmodule NozomiStation.Media.YtDlp do
   end
 
   def auth_args do
+    cookie_args() ++ extractor_args()
+  end
+
+  defp cookie_args do
     path =
       Application.get_env(:nozomi_station, :ytdlp_cookies_file) ||
         System.get_env("YTDLP_COOKIES_FILE")
 
     if is_binary(path) and path != "" and File.regular?(path), do: ["--cookies", path], else: []
+  end
+
+  defp extractor_args do
+    case System.get_env("YTDLP_EXTRACTOR_ARGS", "youtube:player_client=mweb") do
+      "" -> []
+      value -> ["--extractor-args", value]
+    end
   end
 
   def run(command, args), do: run(command, args, @download_timeout)

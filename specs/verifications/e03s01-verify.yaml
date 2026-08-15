@@ -8,7 +8,7 @@ mechanical:
     tests: 57
   coverage:
     verdict: PASS
-    percent: 90.26
+    percent: 90.08
     threshold: 90.0
   javascript:
     verdict: PASS
@@ -56,10 +56,16 @@ security:
     - host-loopback-only control publication
 
 uat:
-  method: automated local cold-start with real Liquidsoap 2.4.5 and generated audio fixtures
+  method: automated local cold-start plus real yt-dlp downloads and Liquidsoap playback
+  localhost: http://localhost:4000 returned 200 with a progressing HLS playlist
+  real_tracks:
+    - New Order - Blue Monday
+    - The Cure - Just Like Heaven
+    - a-ha - Take On Me
+  queue_state: 3 queued rows and Liquidsoap request IDs 0, 1, 2
   signed: true
   perceptual_browser_step: not_required
-  rationale: The acceptance behavior is queue ordering and track-boundary timing; the real engine log and active HLS output provide deterministic evidence.
+  rationale: Real downloads, database rows, Liquidsoap queue IDs, engine switches, and active HLS output provide direct evidence.
 
 skips:
   - item: Real Last.fm credential smoke

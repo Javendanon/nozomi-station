@@ -61,6 +61,8 @@ export LASTFM_API_KEY="..."
 
 # Opcional en producción: sesión para bloqueos anti-bot de yt-dlp.
 export YTDLP_COOKIES_FILE="/ruta/privada/cookies.txt"
+# El cliente mweb funciona por defecto; permite cambiarlo si YouTube vuelve a bloquearlo.
+export YTDLP_EXTRACTOR_ARGS="youtube:player_client=mweb"
 ```
 
 Nozomi usa `yt-dlp` directamente para búsqueda, metadatos y descarga; no necesita una API key de YouTube. En desarrollo detecta automáticamente `cookies/cookies.txt`, que está ignorado por Git. No guardes estas variables ni las cookies en el repositorio. En producción también son obligatorios `DATABASE_URL` y `SECRET_KEY_BASE`.

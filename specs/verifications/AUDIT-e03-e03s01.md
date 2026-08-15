@@ -60,7 +60,7 @@ The churn ranking helper is absent. Review used `git diff --numstat main...HEAD`
 ### Test coverage and F.I.R.S.T — PASS
 
 - ✓ 57 Elixir tests and 3 JavaScript tests pass.
-- ✓ Product-module line coverage is 90.26%, above the 90% gate.
+- ✓ Product-module line coverage is 90.08%, above the 90% gate.
 - ✓ Every new behavior, callback wrapper, failure branch, path boundary, and migration direction has executable coverage.
 
 | Criterion | Evidence |

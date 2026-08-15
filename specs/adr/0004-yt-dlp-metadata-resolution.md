@@ -16,6 +16,7 @@ El proyecto local `deejai` ya demostró el uso operativo de yt-dlp con una cooki
 - yt-dlp entrega JSON para identificador, título, artista, duración y estado de directo.
 - El Resolver conserva la validación de quince minutos y rechaza directos.
 - El mismo `YTDLP_COOKIES_FILE` se aplica a metadatos y preparación.
+- `youtube:player_client=mweb` es el cliente extractor predeterminado probado; `YTDLP_EXTRACTOR_ARGS` permite reemplazarlo sin cambiar código.
 - Desarrollo detecta `cookies/cookies.txt`; el directorio completo está ignorado por Git.
 - Spotify y Last.fm conservan sus APIs actuales.
 - Nozomi no configura ni requiere `YOUTUBE_API_KEY`.
