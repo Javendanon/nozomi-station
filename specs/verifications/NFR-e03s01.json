@@ -1,6 +1,6 @@
 {
   "story": "e03s01",
-  "captured_at": "2026-08-15T04:22:24-04:00",
+  "captured_at": "2026-08-15T04:52:53-04:00",
   "margin": {
     "target": 10,
     "verified": 10,
@@ -23,9 +23,9 @@
     "hls_regression": "pass"
   },
   "quality": {
-    "elixir_tests": 52,
+    "elixir_tests": 56,
     "javascript_tests": 3,
-    "product_coverage_percent": 91.33,
+    "product_coverage_percent": 90.23,
     "npm_vulnerabilities": 0,
     "retired_hex_packages": 0
   }

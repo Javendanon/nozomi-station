@@ -17,14 +17,15 @@ The churn ranking helper is absent. Review used `git diff --numstat main...HEAD`
 - ✓ `npm audit --omit=dev`: zero vulnerabilities.
 - ✓ `mix hex.audit`: no retired packages.
 - ✓ No secret, dynamic atom, shell command, raw SQL interpolation, unsafe deserialization, or public control binding appears.
-- ✓ Last.fm and YouTube hosts are constants; redirects and malformed candidate entries fail closed.
+- ✓ Last.fm and Spotify hosts are constants; redirects and malformed candidate entries fail closed.
+- ✓ yt-dlp receives bounded argument vectors, allowlisted IDs, validated JSON, and no shell input.
 - ✓ Liquidsoap queue names and metadata commands are allowlisted; paths reject traversal, whitespace, and line breaks.
 - ✓ `specs/security/REVIEW.md` reports no unresolved HIGH finding.
 
 ### Provenance and metadata — PASS
 
 - ✓ Story declares `type: feat`, `risk: P0`, `context: infra`, and `delta: ADDED`.
-- ✓ Implementation references ADR-0001 and ADR-0003.
+- ✓ Implementation references ADR-0001, ADR-0003, and ADR-0004.
 - ✓ Threat model, impact report, executable tasks, NFR evidence, and UAT evidence are linked.
 
 ### Correctness and reliability — PASS
@@ -58,15 +59,15 @@ The churn ranking helper is absent. Review used `git diff --numstat main...HEAD`
 
 ### Test coverage and F.I.R.S.T — PASS
 
-- ✓ 52 Elixir tests and 3 JavaScript tests pass.
-- ✓ Product-module line coverage is 91.33%, above the 90% gate.
+- ✓ 56 Elixir tests and 3 JavaScript tests pass.
+- ✓ Product-module line coverage is 90.23%, above the 90% gate.
 - ✓ Every new behavior, callback wrapper, failure branch, path boundary, and migration direction has executable coverage.
 
 | Criterion | Evidence |
 |-----------|----------|
 | Fast | Full Elixir suite completes in about 0.3 seconds. |
-| Independent | SQL Sandbox owns database tests; TCP tests use ephemeral loopback listeners and restore application config. |
-| Repeatable | Provider responses and clocks are deterministic; real audio fixtures are generated locally. |
+| Independent | SQL Sandbox owns database tests; TCP and yt-dlp boundaries use injected local mocks and restore configuration. |
+| Repeatable | Provider responses and clocks are deterministic; tests make zero network requests and generate fixtures locally. |
 | Self-validating | Tests and scripts exit non-zero on wrong queue order, timing, binding, codec, or state. |
 | Timely | RED commits precede each queue, mood, and scheduler implementation slice. |
 
@@ -80,7 +81,7 @@ The churn ranking helper is absent. Review used `git diff --numstat main...HEAD`
 
 - `README.md` is outside `specs/` because repository onboarding was explicitly requested.
 - Generated Phoenix scaffolding remains excluded from product coverage; all authored programming modules remain included.
-- Real Last.fm/YouTube smoke is skipped because credentials are unavailable; deterministic fixed-host contract tests cover both response shapes and failures.
+- Real Last.fm smoke is skipped because its key is unavailable; deterministic fixed-host contract tests cover responses and failures. yt-dlp direct metadata and search were smoke-tested separately from the test suite with the ignored local cookie jar.
 - Full post-crash reconciliation and file deletion are explicitly assigned to e08, not silently omitted.
 - Trace, blind-spot, and churn helper scripts are absent; direct evidence review is recorded rather than represented as an automated pass.
 

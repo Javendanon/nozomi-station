@@ -6,18 +6,19 @@
 
 ## Scope
 
-Full `main...HEAD` branch diff: Last.fm recommendations, complementary persistence, periodic Oban jobs, Liquidsoap control client and queues, Docker publication, runtime configuration, migrations, scripts, and tests.
+Full `main...HEAD` branch diff: Last.fm recommendations, yt-dlp JSON and cookie handling, complementary persistence, periodic Oban jobs, Liquidsoap control queues, runtime configuration, migrations, scripts, and tests.
 
 ## Findings
 
 ### External providers — PASS
 
 - Last.fm requests use the constant HTTPS endpoint `https://ws.audioscrobbler.com/2.0/`.
-- Candidate artist and title values are query parameters, never URL hosts.
-- Redirects are disabled and receive timeout is ten seconds.
-- Malformed candidate entries are discarded rather than executed or persisted.
-- Every candidate passes existing YouTube duration and live-stream validation before yt-dlp.
-- No provider response body or token is logged.
+- Last.fm candidate values enter a bounded `ytsearch1:` argument, never a shell or URL host.
+- Redirects are disabled for HTTP providers and all external work has explicit timeout bounds.
+- yt-dlp receives argument vectors only; YouTube IDs are allowlisted and searches are capped at 500 bytes.
+- Missing or malformed yt-dlp JSON is discarded rather than executed or persisted.
+- Every candidate passes duration and live-stream validation before preparation.
+- No provider response, cookie value, or token is logged.
 
 ### Liquidsoap control — PASS
 
@@ -33,7 +34,8 @@ Full `main...HEAD` branch diff: Last.fm recommendations, complementary persisten
 
 - Complementary filenames use integer database IDs (`c<ID>.m4a`).
 - Liquidsoap receives the media mount read-only.
-- yt-dlp still receives an argument vector without a shell and retains its timeout and size limit.
+- yt-dlp uses one shared runner for metadata and downloads, without a shell, with timeout and size limits.
+- Preparation removes any stale target before execution, preventing false success after database resets.
 - Temporary cleanup after playback remains assigned to e08 and is not weakened here.
 
 ### Persistence and scheduling — PASS
@@ -46,7 +48,9 @@ Full `main...HEAD` branch diff: Last.fm recommendations, complementary persisten
 
 ### Secrets and dependencies — PASS
 
-- `LASTFM_API_KEY` is required only through runtime environment configuration.
+- `LASTFM_API_KEY` is required only through runtime environment configuration; no YouTube API key is required.
+- `/cookies/` is ignored by Git; the copied jar is mode `0600` and never enters the diff.
+- Tests use injected runners and local fixtures with zero network requests.
 - No credential values, private keys, package additions, unsafe deserialization, raw SQL interpolation, or dynamic atoms appear in the diff.
 - `npm audit --omit=dev`: zero vulnerabilities.
 - `mix hex.audit`: no retired packages.
@@ -55,6 +59,7 @@ Full `main...HEAD` branch diff: Last.fm recommendations, complementary persisten
 
 - Other processes running as the same VPS user can access the loopback control port. Process isolation and firewall hardening belong to e08.
 - A crash between control acknowledgement and database update may replay one file. ADR-0003 assigns exact crash reconciliation to e08.
+- Session cookies can expire or trigger stricter YouTube behavior; removing the cookie configuration restores anonymous yt-dlp access.
 - Music licensing and provider terms remain the accepted product-level risk.
 
 ## Evidence

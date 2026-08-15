@@ -23,4 +23,4 @@ metrics:
 release: null
 handoff:
   next_skill: release-branch
-  context: "Open a PR titled feat(programming): maintain prioritized complementary music, then wait for explicit user approval before merge."
+  context: "PR #3 now resolves YouTube through yt-dlp with a local ignored cookie jar; rerun security, audit, CI, then wait for explicit user approval before merge."

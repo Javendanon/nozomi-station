@@ -1,14 +1,14 @@
 story_id: e03s01
 verdict: PASS
-captured_at: "2026-08-15T04:22:24-04:00"
+captured_at: "2026-08-15T04:52:53-04:00"
 
 mechanical:
   mix_precommit:
     verdict: PASS
-    tests: 52
+    tests: 56
   coverage:
     verdict: PASS
-    percent: 91.33
+    percent: 90.23
     threshold: 90.0
   javascript:
     verdict: PASS
@@ -32,6 +32,11 @@ acceptance:
     evidence: A provider failure and a preparation failure were discarded while the margin still reached ten.
 
 integration:
+  yt_dlp_metadata_smoke:
+    verdict: PASS
+    mode: manual UAT outside the test suite
+    evidence: Direct video metadata and ytsearch1 both resolved through the copied cookie jar without a YouTube API key.
+  test_network_requests: 0
   liquidsoap_config: PASS
   liquidsoap_control: PASS
   loopback_binding: 127.0.0.1:1234
@@ -44,7 +49,7 @@ security:
   high_findings: 0
   controls:
     - fixed HTTPS Last.fm endpoint
-    - YouTube duration and live validation before preparation
+    - mocked yt-dlp JSON duration and live validation before preparation
     - integer-derived media paths
     - path traversal and whitespace rejection
     - fixed Liquidsoap command allowlist
@@ -57,8 +62,8 @@ uat:
   rationale: The acceptance behavior is queue ordering and track-boundary timing; the real engine log and active HLS output provide deterministic evidence.
 
 skips:
-  - item: Real Last.fm and YouTube credential smoke
-    reason: External credentials are not available in the test environment; fixed-host contract tests cover requests and responses.
+  - item: Real Last.fm credential smoke
+    reason: A Last.fm key is not available in the test environment; fixed-host contract tests cover requests and responses.
   - item: Full Liquidsoap crash recovery
     reason: Explicitly assigned to e08 by ADR-0003.
   - item: Trace and blind-spot generator scripts
