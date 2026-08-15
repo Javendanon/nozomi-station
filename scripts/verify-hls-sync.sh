@@ -25,7 +25,7 @@ PORT=$port PHX_SERVER=true MIX_ENV=test mix phx.server >tmp/sync-phoenix.log 2>&
 server_pid=$!
 
 for _ in {1..30}; do
-  curl -fsS "http://127.0.0.1:$port/hls/aac.m3u8" >/dev/null && break
+  curl -fsS "http://127.0.0.1:$port/hls/aac.m3u8" >/dev/null 2>&1 && break
   sleep 1
 done
 
@@ -40,11 +40,11 @@ cmp tmp/client-one.m3u8 tmp/client-two.m3u8
 target_duration=$(awk -F: '/^#EXT-X-TARGETDURATION:/{print $2}' tmp/client-one.m3u8 | tr -d '\r')
 test "$target_duration" -le 2
 
-first_sequence=$(awk -F: '/^#EXT-X-MEDIA-SEQUENCE:/{print $2}' tmp/client-one.m3u8 | tr -d '\r')
+first_segments=$(grep -c '^#EXTINF:' tmp/client-one.m3u8)
 sleep 3
 curl -fsS "http://127.0.0.1:$port/hls/aac.m3u8" >tmp/client-later.m3u8
-later_sequence=$(awk -F: '/^#EXT-X-MEDIA-SEQUENCE:/{print $2}' tmp/client-later.m3u8 | tr -d '\r')
-test "$later_sequence" -gt "$first_sequence"
+later_segments=$(grep -c '^#EXTINF:' tmp/client-later.m3u8)
+test "$later_segments" -gt "$first_segments"
 
 npm --prefix assets test -- js/radio_player.test.mjs
 echo "hls-sync: OK"

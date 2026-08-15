@@ -12,8 +12,8 @@ export async function connectToLiveStream(audio, streamUrl, HlsType = Hls) {
   if (!HlsType.isSupported()) throw new Error("HLS no está disponible en este navegador")
 
   const hls = new HlsType({
-    liveSyncDurationCount: 1,
-    liveMaxLatencyDurationCount: 2,
+    liveSyncDuration: 1,
+    liveMaxLatencyDuration: 2,
   })
 
   hls.on(HlsType.Events.MANIFEST_PARSED, () => audio.play())
