@@ -19,4 +19,25 @@ defmodule NozomiStation.Media.ResolverTest do
     assert track.duration_seconds == 200
     assert track.youtube_id == "video_123"
   end
+
+  test "accepts a canonical YouTube watch URL without forwarding its host" do
+    fetch = fn :youtube, "canonical_456" ->
+      {:ok,
+       %{
+         youtube_id: "canonical_456",
+         title: "Railway",
+         artist: "Express",
+         duration: "PT4M",
+         live?: false
+       }}
+    end
+
+    assert {:ok, track} =
+             Resolver.resolve(
+               "https://www.youtube.com/watch?v=canonical_456&feature=share",
+               fetch
+             )
+
+    assert track.youtube_id == "canonical_456"
+  end
 end
