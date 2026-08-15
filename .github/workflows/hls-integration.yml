@@ -1,0 +1,47 @@
+name: HLS Integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - compose.yaml
+      - "config/liquidsoap/**"
+      - "scripts/verify-hls-*.sh"
+      - "scripts/verify-liquidsoap-*.sh"
+      - "assets/js/radio_player.*"
+      - "assets/package*.json"
+      - lib/nozomi_station_web/live/radio_live.ex
+      - mix.exs
+      - mix.lock
+      - .github/workflows/hls-integration.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hls-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        with:
+          otp-version: "28.0"
+          elixir-version: "1.18.4"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: assets/package-lock.json
+      - run: sudo apt-get update && sudo apt-get install --yes ffmpeg
+      - run: mix deps.get
+      - run: npm ci --prefix assets
+      - run: bash scripts/verify-liquidsoap-hls.sh
+      - run: bash scripts/verify-hls-sync.sh

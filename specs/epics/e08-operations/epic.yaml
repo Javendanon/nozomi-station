@@ -1,0 +1,12 @@
+id: e08
+title: Operación y recuperación
+wsjf: 2.9
+total_bcps: 8
+status: todo
+stories:
+  - id: e08s01
+    title: Mantener y recuperar la radio pública
+    bcps: 8
+    status: todo
+    spec: e08s01-operations.md
+    tasks: e08s01-tasks.yaml

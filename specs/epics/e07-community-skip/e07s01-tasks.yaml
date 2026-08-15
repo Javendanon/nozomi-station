@@ -1,0 +1,13 @@
+story_id: e07s01
+title: Saltar una canción por mayoría
+status: todo
+bcps: 5
+tasks:
+  - id: 1
+    description: Contar oyentes activos y congelar el umbral al primer voto.
+    verify: mix test test/nozomi/voting/skip_vote_test.exs
+    status: todo
+  - id: 2
+    description: Ejecutar un único salto y excluir la pista del mood.
+    verify: mix test test/nozomi/voting/skip_integration_test.exs
+    status: todo

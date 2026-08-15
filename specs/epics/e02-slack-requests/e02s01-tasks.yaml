@@ -1,0 +1,17 @@
+story_id: e02s01
+title: Solicitar canciones desde Slack
+status: todo
+bcps: 8
+tasks:
+  - id: 1
+    description: Recibir eventos firmados de Slack de forma idempotente.
+    verify: mix test test/nozomi/slack/events_test.exs
+    status: todo
+  - id: 2
+    description: Resolver y validar enlaces YouTube y Spotify.
+    verify: mix test test/nozomi/media/resolver_test.exs
+    status: todo
+  - id: 3
+    description: Preparar, deduplicar y confirmar solicitudes en hilo.
+    verify: mix test test/nozomi/requests/request_flow_test.exs
+    status: todo

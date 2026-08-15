@@ -1,0 +1,17 @@
+story_id: e05s01
+title: Subir al tren y ver la canción actual
+status: todo
+bcps: 8
+tasks:
+  - id: 1
+    description: Implementar entrada en vivo y estado de canción en LiveView.
+    verify: mix test test/nozomi_web/live/radio_live_test.exs
+    status: todo
+  - id: 2
+    description: Añadir video, paleta y onda respetando movimiento reducido.
+    verify: npm test -- --runInBand assets/js/radio_player.test.js
+    status: todo
+  - id: 3
+    description: Mostrar metadatos y ocultar secciones ausentes.
+    verify: mix test test/nozomi_web/live/now_playing_test.exs
+    status: todo

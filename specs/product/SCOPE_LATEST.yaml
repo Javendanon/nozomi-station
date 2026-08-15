@@ -19,42 +19,42 @@ summary: >-
   recuperación y capacidad inicial forman parte del alcance, no una fase futura.
 
 in_scope:
-  - epic_id: E01
+  - epic_id: e01
     name: Emisión continua y sincronizada
     outcome: >-
       Todos los oyentes activos reciben la misma programación con continuidad,
       transiciones musicales y un punto temporal compartido.
-  - epic_id: E02
+  - epic_id: e02
     name: Solicitudes automáticas desde Slack
     outcome: >-
       Los enlaces admitidos se identifican, confirman, deduplican y ordenan sin
       moderación ni intervención manual.
-  - epic_id: E03
+  - epic_id: e03
     name: Programación complementaria
     outcome: >-
       La radio mantiene un margen de música preparada y selecciona contenido a
       partir de las últimas solicitudes o de la semilla inicial rock/años 80.
-  - epic_id: E04
+  - epic_id: e04
     name: Transiciones e interludios ferroviarios
     outcome: >-
       Los cambios claros de género y las esperas excepcionales usan sonidos,
       avisos o melodías ferroviarias sin dejar silencios evitables.
-  - epic_id: E05
+  - epic_id: e05
     name: Experiencia del reproductor
     outcome: >-
       El público puede entrar en vivo, ver el viaje por Neo-Tokyo, observar la
       onda de audio y consultar la información disponible de la canción.
-  - epic_id: E06
+  - epic_id: e06
     name: Chat público seudónimo
     outcome: >-
       Los oyentes conversan con alias ferroviarios persistentes y protección
       automática básica contra abuso.
-  - epic_id: E07
+  - epic_id: e07
     name: Votación comunitaria para saltar canciones
     outcome: >-
       Una mayoría estable de oyentes activos puede avanzar la emisión y esa
       decisión afecta las futuras selecciones complementarias.
-  - epic_id: E08
+  - epic_id: e08
     name: Operación y recuperación
     outcome: >-
       La radio recupera su emisión después de fallos, elimina contenido temporal

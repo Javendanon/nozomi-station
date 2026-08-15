@@ -1,0 +1,12 @@
+id: e04
+title: Transiciones ferroviarias
+wsjf: 2.3
+total_bcps: 5
+status: todo
+stories:
+  - id: e04s01
+    title: Ambientar cambios y esperas con sonidos ferroviarios
+    bcps: 5
+    status: todo
+    spec: e04s01-railway-transitions.md
+    tasks: e04s01-tasks.yaml

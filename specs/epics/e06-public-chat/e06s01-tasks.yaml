@@ -1,0 +1,17 @@
+story_id: e06s01
+title: Conversar con una identidad ferroviaria
+status: todo
+bcps: 5
+tasks:
+  - id: 1
+    description: Publicar y persistir solo los últimos 50 mensajes.
+    verify: mix test test/nozomi_web/live/chat_live_test.exs
+    status: todo
+  - id: 2
+    description: Guardar, regenerar y mostrar alias ferroviarios.
+    verify: mix test test/nozomi/identity/alias_test.exs
+    status: todo
+  - id: 3
+    description: Aplicar límites de longitud, frecuencia y repetición.
+    verify: mix test test/nozomi/chat/rate_limit_test.exs
+    status: todo

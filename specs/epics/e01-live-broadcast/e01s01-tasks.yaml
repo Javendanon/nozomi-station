@@ -1,0 +1,53 @@
+story_id: e01s01
+spec: e01s01-live-broadcast.md
+title: Escuchar una emisión continua compartida
+status: passing
+bcps: 8
+risk: P0
+tasks:
+  - id: 1
+    description: Crear la aplicación Phoenix/LiveView y una página pública de radio con el CTA «Subir al tren».
+    verify: mix test test/nozomi_station_web/live/radio_live_test.exs
+    risk: P0
+    security: low
+    status: passing
+    allure:
+      severity: critical
+      categories:
+        - tracer-bullet
+        - web
+  - id: 2
+    description: Emitir una fuente local mediante Liquidsoap como HLS AAC 192 kbps sin publicar su interfaz de control.
+    verify: bash scripts/verify-liquidsoap-hls.sh
+    security_verify: no new security findings in affected paths
+    risk: P0
+    security: high
+    status: passing
+    allure:
+      severity: critical
+      categories:
+        - broadcast
+        - Security Review
+  - id: 3
+    description: Conectar el CTA a la emisión HLS usando soporte nativo o hls.js y exponer el estado actual por LiveView.
+    verify: mix test test/nozomi_station_web/live/radio_live_test.exs && npm --prefix assets test -- js/radio_player.test.mjs
+    security_verify: no new security findings in affected paths
+    risk: P0
+    security: medium
+    status: passing
+    allure:
+      severity: critical
+      categories:
+        - player
+        - Security Review
+  - id: 4
+    description: Probar continuidad del manifiesto y una deriva máxima de dos segundos entre dos clientes.
+    verify: bash scripts/verify-hls-sync.sh
+    risk: P0
+    security: low
+    status: passing
+    allure:
+      severity: critical
+      categories:
+        - synchronization
+        - integration
