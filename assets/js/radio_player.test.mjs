@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import {connectToLiveStream} from "./radio_player.mjs"
+import {connectToLiveStream, RadioPlayer} from "./radio_player.mjs"
 
 const audio = nativeHls => ({
   canPlayType: () => nativeHls ? "maybe" : "",
@@ -10,6 +10,18 @@ const audio = nativeHls => ({
     return Promise.resolve()
   },
 })
+
+const eventTarget = properties => {
+  const listeners = new Map()
+
+  return {
+    ...properties,
+    addEventListener: (event, callback) => listeners.set(event, callback),
+    removeEventListener: event => listeners.delete(event),
+    trigger: event => listeners.get(event)?.(),
+    listensTo: event => listeners.has(event),
+  }
+}
 
 test("uses native HLS support when the browser provides it", async () => {
   const element = audio(true)
@@ -40,4 +52,26 @@ test("uses hls.js at the live edge when native HLS is unavailable", async () => 
   assert.equal(hls.config.liveSyncDuration, 1)
   assert.equal(hls.config.liveMaxLatencyDuration, 2)
   assert.equal(element.played, true)
+})
+
+test("releases player resources when reconnecting and unmounting", async () => {
+  const button = eventTarget({})
+  const streamAudio = eventTarget(audio(true))
+  const status = {textContent: ""}
+  const elements = {"#join-live": button, "#live-audio": streamAudio, "#stream-status": status}
+  const hook = {
+    ...RadioPlayer,
+    el: {dataset: {stream: "/hls/live.m3u8"}, querySelector: selector => elements[selector]},
+  }
+  let destroyed = 0
+
+  hook.mounted()
+  hook.hls = {destroy: () => destroyed++}
+  await button.trigger("click")
+
+  assert.equal(destroyed, 1)
+  assert.equal(button.listensTo("click"), true)
+  hook.destroyed()
+  assert.equal(button.listensTo("click"), false)
+  assert.equal(streamAudio.listensTo("playing"), false)
 })
