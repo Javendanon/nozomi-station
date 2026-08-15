@@ -1,5 +1,9 @@
 # e01s01 — Escuchar una emisión continua compartida
 
+**type:** feat  
+**risk:** P0  
+**context:** infra
+
 ## 1. Business narrative
 La radio necesita una señal común antes de añadir solicitudes o comunidad.
 
@@ -91,7 +95,7 @@ Los cuatro comandos `verify` de `e01s01-tasks.yaml` pasan; Liquidsoap no publica
 
 ### Implementation steps
 1. Crear Phoenix/LiveView y el primer test de la página pública → verify: `mix test test/nozomi_station_web/live/radio_live_test.exs`
-2. Añadir Liquidsoap y la verificación HLS segura → verify: `bash scripts/verify-liquidsoap-hls.sh`
+2. Añadir Liquidsoap y la verificación HLS segura (ref: ADR-0001) → verify: `bash scripts/verify-liquidsoap-hls.sh`
 3. Conectar el reproductor HLS mediante un hook mínimo → verify: `mix test test/nozomi_station_web/live/radio_live_test.exs && npm test -- --run assets/js/radio_player.test.js`
 4. Medir continuidad y sincronización → verify: `bash scripts/verify-hls-sync.sh`
 

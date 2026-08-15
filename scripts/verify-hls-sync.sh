@@ -41,10 +41,12 @@ target_duration=$(awk -F: '/^#EXT-X-TARGETDURATION:/{print $2}' tmp/client-one.m
 test "$target_duration" -le 2
 
 first_segments=$(grep -c '^#EXTINF:' tmp/client-one.m3u8)
+first_sequence=$(awk -F: '/^#EXT-X-MEDIA-SEQUENCE:/{print $2}' tmp/client-one.m3u8 | tr -d '\r')
 sleep 3
 curl -fsS "http://127.0.0.1:$port/hls/aac.m3u8" >tmp/client-later.m3u8
 later_segments=$(grep -c '^#EXTINF:' tmp/client-later.m3u8)
-test "$later_segments" -gt "$first_segments"
+later_sequence=$(awk -F: '/^#EXT-X-MEDIA-SEQUENCE:/{print $2}' tmp/client-later.m3u8 | tr -d '\r')
+test "$later_segments" -gt "$first_segments" || test "$later_sequence" -gt "$first_sequence"
 
 npm --prefix assets test -- js/radio_player.test.mjs
 echo "hls-sync: OK"
