@@ -38,9 +38,11 @@ export const RadioPlayer = {
   markLive() {
     this.connected = true
     this.connecting = false
-    this.button.hidden = true
+    this.button.hidden = false
+    this.button.disabled = true
+    this.button.ariaLabel = "Emisión en vivo"
     this.el.dataset.live = "true"
-    this.status.textContent = "En vivo"
+    this.status.textContent = "Señal sincronizada"
   },
 
   async joinLive() {

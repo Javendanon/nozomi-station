@@ -341,8 +341,17 @@ body {
   transition: transform 160ms ease, background 160ms ease;
 }
 
-#join-live:hover { transform: translateY(-2px); background: #ff5261; }
+#join-live:not(:disabled):hover { transform: translateY(-2px); background: #ff5261; }
 #join-live:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+#join-live .live-label { display: none; }
+#radio-player[data-live="true"] #join-live {
+  cursor: default;
+  border-color: rgb(69 215 255 / 0.5);
+  background: rgb(11 34 45 / 0.86);
+  color: var(--nozomi-blue);
+}
+#radio-player[data-live="true"] #join-live .join-label { display: none; }
+#radio-player[data-live="true"] #join-live .live-label { display: inline; }
 #stream-status { margin: 0; color: rgb(244 240 232 / 0.65); font-size: 0.75rem; }
 
 @keyframes rails { to { background-position: 0 0, 0 0, 0 58px; } }

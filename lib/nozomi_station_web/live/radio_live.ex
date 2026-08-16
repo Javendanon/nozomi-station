@@ -122,7 +122,8 @@ defmodule NozomiStationWeb.RadioLive do
             phx-update="ignore"
           >
             <button id="join-live" type="button" aria-label="Subir al tren y escuchar en vivo">
-              <span aria-hidden="true">▶</span> Subir al tren
+              <span class="join-label"><i aria-hidden="true">▶</i> Subir al tren</span>
+              <span class="live-label"><i aria-hidden="true">●</i> En vivo</span>
             </button>
             <p id="stream-status" role="status">Conectando</p>
             <audio id="live-audio" preload="none"></audio>
