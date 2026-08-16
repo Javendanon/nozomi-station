@@ -48,3 +48,14 @@ tasks:
         - Slack
         - LiveView
         - Security Review
+  - id: 5
+    description: Añadir un mando maestro Shinkansen accesible que controle el volumen local sin reconectar HLS.
+    verify: mix test test/nozomi_station_web/live/radio_live_test.exs && npm --prefix assets test -- js/radio_player.test.mjs
+    risk: P2
+    security: none
+    status: failing
+    allure:
+      severity: normal
+      categories:
+        - Player
+        - Accessibility

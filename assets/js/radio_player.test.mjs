@@ -58,7 +58,15 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
   const button = eventTarget({})
   const streamAudio = eventTarget(audio(true))
   const status = {textContent: "En vivo"}
-  const elements = {"#join-live": button, "#live-audio": streamAudio, "#stream-status": status}
+  const volume = eventTarget({value: "0.65"})
+  const volumeLevel = {textContent: "65"}
+  const elements = {
+    "#join-live": button,
+    "#live-audio": streamAudio,
+    "#stream-status": status,
+    "#volume-control": volume,
+    "#volume-level": volumeLevel,
+  }
   const hook = {
     ...RadioPlayer,
     el: {dataset: {stream: "/hls/live.m3u8"}, querySelector: selector => elements[selector]},
@@ -69,6 +77,11 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
   hook.hls = {destroy: () => destroyed++}
   await streamAudio.trigger("playing")
 
+  assert.equal(streamAudio.volume, 0.65)
+  volume.value = "0.25"
+  volume.trigger("input")
+  assert.equal(streamAudio.volume, 0.25)
+  assert.equal(volumeLevel.textContent, "25")
   assert.equal(button.hidden, true)
   assert.equal(hook.el.dataset.live, "true")
   await button.trigger("click")
@@ -79,4 +92,5 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
   assert.equal(destroyed, 1)
   assert.equal(button.listensTo("click"), false)
   assert.equal(streamAudio.listensTo("playing"), false)
+  assert.equal(volume.listensTo("input"), false)
 })

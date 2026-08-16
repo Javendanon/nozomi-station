@@ -51,6 +51,10 @@ Una escena CSS Neo-Tokyo y una onda animada indican reproducción. Ambas respeta
 
 El texto libre que acompaña uno o más enlaces en Slack se normaliza, limita a 280 caracteres y se conserva con cada solicitud. La estación lo muestra solo mientras suena esa solicitud; mensajes formados únicamente por enlaces o puntuación se omiten.
 
+### ADDED: Control de volumen
+
+Un control nativo de rango, diseñado como el mando maestro de un Shinkansen, ajusta el volumen local del elemento de audio sin reconectar ni modificar la emisión compartida.
+
 ## 8. Data
 
 Título, artista, duración, álbum, portada, etiquetas, reseña y mensaje opcional del oyente. Solo el mensaje se persiste con la solicitud; la ficha enriquecida vive en el proceso singleton durante la pista.
@@ -112,6 +116,11 @@ Scenario: Dedicatoria alrededor del enlace
   Given un mensaje Slack con texto antes o después del enlace
   When la solicitud llega a reproducirse
   Then la estación muestra el texto sin el enlace
+
+Scenario: Volumen local
+  Given que el oyente está conectado
+  When mueve el mando de volumen
+  Then cambia solo el volumen de su reproductor sin reconectar HLS
 
 Scenario: Movimiento reducido
   Given que el sistema solicita movimiento reducido
