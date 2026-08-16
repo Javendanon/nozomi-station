@@ -37,6 +37,32 @@ defmodule NozomiStation.Programming.ComplementaryQueueTest do
     assert {:ok, %{available: 10, prepared: 0}} = RefillWorker.perform(%Oban.Job{})
   end
 
+  test "preserves recommendation names for provider metadata lookup" do
+    candidate = %{title: "Blue Monday", artist: "New Order"}
+
+    resolver = fn ^candidate ->
+      {:ok,
+       %{
+         youtube_id: "canonical-track",
+         title: "New Order - Blue Monday (Official Video)",
+         artist: "Uploader",
+         duration_seconds: 451
+       }}
+    end
+
+    prepare = fn _youtube_id, _reference -> {:ok, "/media/canonical.m4a"} end
+
+    assert {:ok, %{prepared: 1}} =
+             ComplementaryQueue.fill([candidate], :seed,
+               target: 1,
+               resolver: resolver,
+               prepare: prepare
+             )
+
+    assert %ComplementaryTrack{title: "Blue Monday", artist: "New Order"} =
+             Repo.get_by!(ComplementaryTrack, youtube_id: "canonical-track")
+  end
+
   test "a skipped complementary track is never selected again" do
     [candidate] = candidates(1)
     resolver = fn candidate -> {:ok, resolved(candidate)} end
