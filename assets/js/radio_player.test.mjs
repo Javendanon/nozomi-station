@@ -7,6 +7,7 @@ const audio = nativeHls => ({
   canPlayType: () => nativeHls ? "maybe" : "",
   play() {
     this.played = true
+    this.playCount = (this.playCount || 0) + 1
     return Promise.resolve()
   },
 })
@@ -54,8 +55,8 @@ test("uses hls.js at the live edge when native HLS is unavailable", async () => 
   assert.equal(element.played, true)
 })
 
-test("keeps live playback on repeated joins and releases it when unmounting", async () => {
-  const button = eventTarget({})
+test("keeps live playback across patches and reconnects after the stream ends", async () => {
+  const button = eventTarget({dataset: {}})
   const streamAudio = eventTarget(audio(true))
   const elements = {"#join-live": button, "#live-audio": streamAudio}
   const hook = {
@@ -73,14 +74,29 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
   assert.equal(button.hidden, false)
   assert.equal(button.disabled, true)
   assert.equal(button.ariaLabel, "Emisión en vivo")
-  assert.equal(hook.el.dataset.live, "true")
+  assert.equal(button.dataset.live, "true")
+
+  hook.el.dataset.live = "false"
+  assert.equal(button.dataset.live, "true")
   await button.trigger("click")
   assert.equal(destroyed, 0)
-  assert.equal(button.listensTo("click"), true)
-  hook.destroyed()
+
+  await streamAudio.trigger("ended")
+  assert.equal(hook.connected, false)
+  assert.equal(button.disabled, false)
+  assert.equal(button.dataset.live, "false")
   assert.equal(destroyed, 1)
+
+  await button.trigger("click")
+  assert.equal(streamAudio.playCount, 2)
+  await streamAudio.trigger("playing")
+  assert.equal(button.dataset.live, "true")
+
+  hook.destroyed()
   assert.equal(button.listensTo("click"), false)
   assert.equal(streamAudio.listensTo("playing"), false)
+  assert.equal(streamAudio.listensTo("ended"), false)
+  assert.equal(streamAudio.listensTo("error"), false)
 })
 
 test("moves the Shinkansen volume control in one-percent steps without reconnecting", () => {
