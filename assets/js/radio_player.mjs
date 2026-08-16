@@ -2,7 +2,7 @@ import Hls from "hls.js"
 
 const hlsMimeType = "application/vnd.apple.mpegurl"
 
-export async function connectToLiveStream(audio, streamUrl, HlsType = Hls) {
+export async function connectToLiveStream(audio, streamUrl, HlsType = Hls, onFatalError = () => {}) {
   if (audio.canPlayType(hlsMimeType)) {
     audio.src = streamUrl
     await audio.play()
@@ -17,6 +17,7 @@ export async function connectToLiveStream(audio, streamUrl, HlsType = Hls) {
   })
 
   hls.on(HlsType.Events.MANIFEST_PARSED, () => audio.play())
+  hls.on(HlsType.Events.ERROR, (_event, data) => data.fatal && onFatalError())
   hls.attachMedia(audio)
   hls.loadSource(streamUrl)
   return hls
@@ -65,7 +66,12 @@ export const RadioPlayer = {
     this.hls?.destroy()
 
     try {
-      this.hls = await connectToLiveStream(this.audio, this.el.dataset.stream)
+      this.hls = await connectToLiveStream(
+        this.audio,
+        this.el.dataset.stream,
+        Hls,
+        () => this.markDisconnected(),
+      )
     } catch (_error) {
       this.markDisconnected()
       this.button.ariaLabel = "Emisión no disponible; reintentar"
