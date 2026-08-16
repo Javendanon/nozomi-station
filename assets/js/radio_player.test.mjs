@@ -79,7 +79,7 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
   assert.equal(hook.el.dataset.live, "true")
   await button.trigger("click")
   assert.equal(destroyed, 0)
-  assert.equal(status.textContent, "Señal sincronizada")
+  assert.equal(status.hidden, true)
   assert.equal(button.listensTo("click"), true)
   hook.destroyed()
   assert.equal(destroyed, 1)
