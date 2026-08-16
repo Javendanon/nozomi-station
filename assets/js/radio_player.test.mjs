@@ -36,23 +36,27 @@ test("uses native HLS support when the browser provides it", async () => {
 
 test("uses hls.js at the live edge when native HLS is unavailable", async () => {
   class FakeHls {
-    static Events = {MANIFEST_PARSED: "manifest"}
+    static Events = {MANIFEST_PARSED: "manifest", ERROR: "error"}
     static isSupported() { return true }
 
     constructor(config) { this.config = config }
-    on(_event, callback) { this.ready = callback }
-    loadSource(source) { this.source = source; this.ready() }
+    on(event, callback) { this[event] = callback }
+    loadSource(source) { this.source = source; this.manifest() }
     attachMedia(element) { this.element = element }
   }
 
   const element = audio(false)
-  const hls = await connectToLiveStream(element, "/hls/live.m3u8", FakeHls)
+  let fatalErrors = 0
+  const hls = await connectToLiveStream(element, "/hls/live.m3u8", FakeHls, () => fatalErrors++)
 
   assert.equal(hls.source, "/hls/live.m3u8")
   assert.equal(hls.element, element)
   assert.equal(hls.config.liveSyncDuration, 1)
   assert.equal(hls.config.liveMaxLatencyDuration, 2)
   assert.equal(element.played, true)
+  hls.error(null, {fatal: false})
+  hls.error(null, {fatal: true})
+  assert.equal(fatalErrors, 1)
 })
 
 test("keeps live playback across patches and reconnects after the stream ends", async () => {
