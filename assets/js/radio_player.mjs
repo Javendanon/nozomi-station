@@ -39,6 +39,7 @@ export const RadioPlayer = {
     this.connected = true
     this.connecting = false
     this.button.hidden = true
+    this.el.dataset.live = "true"
     this.status.textContent = "En vivo"
   },
 

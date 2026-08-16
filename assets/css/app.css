@@ -106,3 +106,253 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+:root {
+  --nozomi-ink: #07070c;
+  --nozomi-paper: #f4f0e8;
+  --nozomi-red: #ff3547;
+  --nozomi-blue: #45d7ff;
+}
+
+body {
+  margin: 0;
+  background: var(--nozomi-ink);
+  color: var(--nozomi-paper);
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.station-shell {
+  isolation: isolate;
+  position: relative;
+  display: grid;
+  min-height: 100svh;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  background: radial-gradient(circle at 72% 28%, #25203a 0, #0b0b14 38%, #050509 72%);
+}
+
+.neo-journey {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0.8;
+}
+
+.neo-sun {
+  position: absolute;
+  top: 15%;
+  right: 8%;
+  width: clamp(9rem, 22vw, 19rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: repeating-linear-gradient(to bottom, var(--nozomi-red) 0 8px, transparent 8px 14px);
+  filter: drop-shadow(0 0 42px rgb(255 53 71 / 0.35));
+}
+
+.neo-city {
+  position: absolute;
+  right: 0;
+  bottom: 25%;
+  left: 0;
+  height: 30%;
+  opacity: 0.45;
+  background:
+    linear-gradient(90deg, transparent 5%, #191927 5% 12%, transparent 12% 16%, #202034 16% 24%, transparent 24% 29%, #171724 29% 43%, transparent 43% 48%, #222236 48% 58%, transparent 58% 66%, #171724 66% 76%, transparent 76% 81%, #202034 81% 94%, transparent 94%),
+    repeating-linear-gradient(90deg, transparent 0 18px, rgb(69 215 255 / 0.45) 19px 21px, transparent 22px 34px);
+  clip-path: polygon(0 40%, 7% 40%, 7% 12%, 13% 12%, 13% 52%, 21% 52%, 21% 20%, 30% 20%, 30% 61%, 39% 61%, 39% 0, 50% 0, 50% 48%, 61% 48%, 61% 22%, 72% 22%, 72% 56%, 84% 56%, 84% 8%, 95% 8%, 95% 44%, 100% 44%, 100% 100%, 0 100%);
+}
+
+.neo-rails {
+  position: absolute;
+  bottom: -32%;
+  left: 50%;
+  width: 130%;
+  height: 68%;
+  transform: translateX(-50%);
+  background:
+    linear-gradient(78deg, transparent 46%, rgb(69 215 255 / 0.7) 46.2% 46.7%, transparent 47%),
+    linear-gradient(102deg, transparent 53%, rgb(69 215 255 / 0.7) 53.2% 53.7%, transparent 54%),
+    repeating-linear-gradient(to bottom, transparent 0 26px, rgb(255 255 255 / 0.16) 27px 29px);
+  animation: rails 1.6s linear infinite;
+}
+
+.station-header,
+.station-player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(1.25rem, 3vw, 2.5rem) clamp(1.25rem, 5vw, 5rem);
+}
+
+.station-header h1 {
+  margin: 0.15rem 0 0;
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.station-kicker,
+.station-eyebrow,
+.station-route {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.station-kicker,
+.station-route span,
+.station-eyebrow {
+  color: var(--nozomi-red);
+}
+
+.station-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.8fr);
+  align-items: end;
+  gap: clamp(2rem, 6vw, 7rem);
+  width: min(90rem, 100%);
+  margin: auto;
+  padding: 4rem clamp(1.25rem, 5vw, 5rem);
+}
+
+.station-intro h2 {
+  max-width: 12ch;
+  margin: 0.55rem 0 0;
+  font-size: clamp(2.8rem, 7vw, 7.5rem);
+  line-height: 0.88;
+  letter-spacing: -0.075em;
+}
+
+.now-playing-card {
+  display: grid;
+  grid-template-columns: minmax(6rem, 10rem) 1fr;
+  gap: 1.4rem;
+  align-items: start;
+  padding: 1.25rem;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  background: rgb(7 7 12 / 0.72);
+  backdrop-filter: blur(18px);
+}
+
+.now-playing-card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.now-playing-copy h3 {
+  margin: 0.55rem 0 0;
+  font-size: clamp(1.7rem, 3vw, 3rem);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+#now-playing-artist,
+.track-album {
+  margin: 0.4rem 0 0;
+}
+
+.track-album {
+  color: rgb(244 240 232 / 0.58);
+  font-size: 0.82rem;
+}
+
+.track-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.track-tags li {
+  border: 1px solid rgb(69 215 255 / 0.45);
+  padding: 0.2rem 0.45rem;
+  color: var(--nozomi-blue);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+}
+
+.track-summary {
+  display: -webkit-box;
+  margin: 1rem 0 0;
+  overflow: hidden;
+  color: rgb(244 240 232 / 0.7);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.station-player {
+  gap: 2rem;
+  border-top: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(5 5 9 / 0.72);
+  backdrop-filter: blur(16px);
+}
+
+.signal-wave {
+  display: flex;
+  width: min(38rem, 50vw);
+  height: 2.5rem;
+  align-items: center;
+  gap: 5px;
+}
+
+.signal-wave span {
+  width: 100%;
+  height: calc(20% + var(--bar) * 5%);
+  background: linear-gradient(to top, var(--nozomi-red), var(--nozomi-blue));
+  animation: signal 0.8s ease-in-out infinite alternate;
+  animation-delay: calc(var(--bar) * -70ms);
+}
+
+.station-player:not(:has(#radio-player[data-live="true"])) .signal-wave span {
+  animation-play-state: paused;
+}
+
+#radio-player {
+  display: flex;
+  min-width: 11rem;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.8rem;
+}
+
+#join-live {
+  cursor: pointer;
+  border: 1px solid var(--nozomi-red);
+  border-radius: 999px;
+  padding: 0.75rem 1.1rem;
+  background: var(--nozomi-red);
+  color: white;
+  font-weight: 750;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+#join-live:hover { transform: translateY(-2px); background: #ff5261; }
+#join-live:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+#stream-status { margin: 0; color: rgb(244 240 232 / 0.65); font-size: 0.75rem; }
+
+@keyframes rails { to { background-position: 0 0, 0 0, 0 58px; } }
+@keyframes signal { from { transform: scaleY(0.35); } to { transform: scaleY(1); } }
+
+@media (max-width: 760px) {
+  .station-route { display: none; }
+  .station-content { grid-template-columns: 1fr; align-content: center; padding-block: 2rem; }
+  .station-intro h2 { font-size: clamp(2.8rem, 15vw, 5rem); }
+  .now-playing-card { grid-template-columns: 5.5rem 1fr; }
+  .track-summary { display: none; }
+  .signal-wave { width: 34vw; }
+  .station-player { gap: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-rails,
+  .signal-wave span,
+  #join-live { animation: none; transition: none; }
+}
