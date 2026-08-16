@@ -117,7 +117,6 @@ defmodule NozomiStationWeb.RadioLive do
           <div
             id="radio-player"
             data-stream={@stream_url}
-            data-live="false"
             phx-hook="RadioPlayer"
             phx-update="ignore"
           >

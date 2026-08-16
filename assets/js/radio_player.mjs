@@ -28,9 +28,13 @@ export const RadioPlayer = {
     this.button = this.el.querySelector("#join-live")
     this.connected = false
     this.connecting = false
+    this.button.dataset.live = "false"
     this.onPlaying = () => this.markLive()
+    this.onDisconnected = () => this.markDisconnected()
     this.onJoin = () => this.joinLive()
     this.audio.addEventListener("playing", this.onPlaying)
+    this.audio.addEventListener("ended", this.onDisconnected)
+    this.audio.addEventListener("error", this.onDisconnected)
     this.button.addEventListener("click", this.onJoin)
   },
 
@@ -40,7 +44,17 @@ export const RadioPlayer = {
     this.button.hidden = false
     this.button.disabled = true
     this.button.ariaLabel = "Emisión en vivo"
-    this.el.dataset.live = "true"
+    this.button.dataset.live = "true"
+  },
+
+  markDisconnected() {
+    this.hls?.destroy()
+    this.hls = null
+    this.connected = false
+    this.connecting = false
+    this.button.disabled = false
+    this.button.ariaLabel = "Subir al tren y escuchar en vivo"
+    this.button.dataset.live = "false"
   },
 
   async joinLive() {
@@ -53,14 +67,15 @@ export const RadioPlayer = {
     try {
       this.hls = await connectToLiveStream(this.audio, this.el.dataset.stream)
     } catch (_error) {
-      this.connecting = false
-      this.button.disabled = false
+      this.markDisconnected()
       this.button.ariaLabel = "Emisión no disponible; reintentar"
     }
   },
 
   destroyed() {
     this.audio.removeEventListener("playing", this.onPlaying)
+    this.audio.removeEventListener("ended", this.onDisconnected)
+    this.audio.removeEventListener("error", this.onDisconnected)
     this.button.removeEventListener("click", this.onJoin)
     this.hls?.destroy()
   },

@@ -221,7 +221,7 @@ body {
   animation-delay: calc(var(--bar) * -70ms);
 }
 
-.station-player:not(:has(#radio-player[data-live="true"])) .signal-wave span {
+.station-player:not(:has(#join-live[data-live="true"])) .signal-wave span {
   animation-play-state: paused;
 }
 
@@ -344,14 +344,14 @@ body {
 #join-live:not(:disabled):hover { transform: translateY(-2px); background: #ff5261; }
 #join-live:focus-visible { outline: 2px solid white; outline-offset: 3px; }
 #join-live .live-label { display: none; }
-#radio-player[data-live="true"] #join-live {
+#join-live[data-live="true"] {
   cursor: default;
   border-color: rgb(69 215 255 / 0.5);
   background: rgb(11 34 45 / 0.86);
   color: var(--nozomi-blue);
 }
-#radio-player[data-live="true"] #join-live .join-label { display: none; }
-#radio-player[data-live="true"] #join-live .live-label { display: inline; }
+#join-live[data-live="true"] .join-label { display: none; }
+#join-live[data-live="true"] .live-label { display: inline; }
 
 @keyframes rails { to { background-position: 0 0, 0 0, 0 58px; } }
 @keyframes signal { from { transform: scaleY(0.35); } to { transform: scaleY(1); } }
