@@ -1,7 +1,7 @@
 {
   "story_id": "e05s01",
-  "generated_at": "2026-08-16T18:22:46Z",
-  "verdict": "PASS_WITH_MANUAL_UAT_PENDING",
+  "generated_at": "2026-08-16T19:15:21Z",
+  "verdict": "PASS_WITH_HUMAN_REVIEW_PENDING",
   "performance": {
     "status": "pass",
     "evidence": "One supervised process polls Liquidsoap every 2000 ms and enriches only on path changes; listeners receive PubSub without per-listener provider calls.",
@@ -9,7 +9,7 @@
   },
   "reliability": {
     "status": "pass",
-    "evidence": "Tests prove unchanged paths are not republished, ended paths clear once, and control/provider failures preserve playback and the last valid track."
+    "evidence": "Tests prove unchanged paths are not republished, ended paths clear once, control/provider failures preserve the last valid track, and browser/HLS failures expose reconnection without a refresh."
   },
   "operability": {
     "status": "pass",

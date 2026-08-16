@@ -1,12 +1,12 @@
 story_id: e05s01
-verified_at: "2026-08-16T18:22:46Z"
+verified_at: "2026-08-16T19:15:21Z"
 verifier: verify-work
 risk: P0
-status: pending_human_uat
+status: ready_for_human_review
 phases:
   cold_start:
     passed: true
-    evidence: Phoenix restarted from .env and returned HTTP 200 on localhost:4000.
+    evidence: A fresh MIX_ENV=test Phoenix instance on port 4102 returned the Nozomi Station page.
   build:
     passed: true
     command: mix assets.build
@@ -26,9 +26,10 @@ phases:
     liquidsoap_hls: pass
     hls_sync: pass
     programming_priority: pass
-    current_path: "{:ok, tmp/media/c4.m4a}"
+    current_path: "{:ok, tmp/media/c53.m4a}"
     listener_message: extraction, 280-character persistence, empty-message omission, and LiveView rendering pass
     volume: stable card-side native range updates local audio in 1% steps and cleans up its event listener
+    reconnect: LiveView patches preserve client state; ended, media error, and fatal hls.js error restore the join action
     migration_reversal: pass
     lastfm_real:
       album: Substance 1987
@@ -38,7 +39,7 @@ phases:
   terminal_verdict:
     command: mix precommit && mix test --cover
     exit_code: 0
-    captured_at: "2026-08-16T18:51:07Z"
+    captured_at: "2026-08-16T19:14:04Z"
     note: Single contiguous run; 71 tests passed and coverage was 90.81%.
   security:
     passed: true
@@ -46,18 +47,20 @@ phases:
     report: specs/security/REVIEW.md
   manual:
     passed: false
+    completed:
+      - Desktop visual hierarchy and Neo-Tokyo scene reviewed from a user screenshot.
+      - Volume smoothness, stable placement, and revised Shinkansen design accepted by the user.
+      - Join/live labels and redundant status text refined from user feedback.
+      - Missing local tracks traced to a stopped Liquidsoap verification container and restored.
     pending:
-      - Open localhost:4000 on desktop and mobile-sized viewport.
-      - Confirm the Neo-Tokyo scene, current title and artist are readable.
-      - Join from two windows and confirm both update to the same track without interrupting audio.
-      - Enable prefers-reduced-motion and confirm rails and waveform stop animating.
-      - Confirm the real Last.fm album, cover, tags and summary render in the browser.
+      - Review the ready PR on desktop and mobile.
+      - Confirm one natural track boundary keeps audio live without refreshing.
+      - Confirm two windows, reduced motion, and real Last.fm rendering.
   gaps:
-    closed: false
-    items:
-      - Human perceptual UAT remains pending before merge approval.
+    closed: true
+    items: []
 skips:
   - item: Final background video
     reason: The user has not supplied the asset; the accepted provisional CSS scene is local and replaceable.
   - item: Final visual Last.fm confirmation
-    reason: Real track.getInfo returned album, five tags, summary, and an allowlisted CDN cover; browser confirmation remains part of human UAT.
+    reason: Real track.getInfo returned album, five tags, summary, and an allowlisted CDN cover; final browser confirmation is assigned to human PR review.

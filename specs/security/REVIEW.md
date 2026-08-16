@@ -79,7 +79,7 @@ Full `main...HEAD` branch diff: Last.fm recommendations, yt-dlp JSON and cookie 
 
 ## Scope
 
-`main...feat/e05-live-player`: Liquidsoap current-request detection, singleton PubSub updates, Last.fm `track.getInfo`, remote cover rendering, LiveView metadata, and the existing HLS hook.
+`main...feat/e05-live-player`: Liquidsoap current-request detection, singleton PubSub updates, Last.fm `track.getInfo`, Slack listener messages, remote cover rendering, LiveView metadata, volume control, and HLS reconnection.
 
 ## Boundary checks
 
@@ -90,6 +90,8 @@ Full `main...HEAD` branch diff: Last.fm recommendations, yt-dlp JSON and cookie 
 - Cover URLs require HTTPS and the exact `lastfm-img.freetls.fastly.net` host; all other provider URLs are omitted.
 - Provider text and Slack listener messages are rendered through normal HEEx escaping. Slack messages are stripped of links, limited to 280 characters, and omitted when only punctuation remains. No `raw`, `innerHTML`, inline scripts, or template evaluation was added.
 - Provider and control failures alter only display state; the audio element and queue are not mutated.
+- Playback and volume hooks mutate only fixed local DOM elements; they do not evaluate provider or listener text.
+- Native media errors and fatal hls.js errors only reset local playback state and expose the explicit reconnect action.
 - Test polling is disabled, preserving the zero-network automated-test contract.
 
 ## Dependency and scanner evidence

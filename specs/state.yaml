@@ -3,14 +3,18 @@ active_flow: build_epic
 active_epic: e05
 active_story: e05s01
 epic_cycle:
-  step: 5
+  step: 8
   story_bcps: 8
+  audit_result: pass
   completed_steps:
     - 0
     - 1
     - 2
     - 3
     - 4
+    - 5
+    - 6
+    - 7
 git:
   branch: feat/e05-live-player
   base: main
@@ -18,5 +22,5 @@ metrics:
   story_start: "2026-08-15T23:52:19Z"
 release: null
 handoff:
-  next_skill: verify-work
-  context: Slack listener messages and Shinkansen volume control implemented; 71 tests, 90.81% coverage, migration reversal and local integration gates pass; human visual UAT remains.
+  next_skill: release-branch
+  context: e05s01 implementation, verification, security review, and audit pass; make PR #4 ready and wait for explicit human approval before merge.
