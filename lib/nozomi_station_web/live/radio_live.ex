@@ -95,6 +95,24 @@ defmodule NozomiStationWeb.RadioLive do
             phx-hook="RadioPlayer"
             phx-update="ignore"
           >
+            <div class="master-controller">
+              <label for="volume-control">
+                Mando maestro <span aria-hidden="true">音量</span>
+              </label>
+              <div class="master-controller-track">
+                <span aria-hidden="true">切</span>
+                <input
+                  id="volume-control"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value="0.8"
+                  aria-label="Volumen del reproductor"
+                />
+                <output id="volume-level" for="volume-control">80</output><span aria-hidden="true">%</span>
+              </div>
+            </div>
             <button id="join-live" type="button" aria-label="Subir al tren y escuchar en vivo">
               <span aria-hidden="true">▶</span> Subir al tren
             </button>

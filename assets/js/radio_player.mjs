@@ -27,12 +27,17 @@ export const RadioPlayer = {
     this.audio = this.el.querySelector("#live-audio")
     this.button = this.el.querySelector("#join-live")
     this.status = this.el.querySelector("#stream-status")
+    this.volume = this.el.querySelector("#volume-control")
+    this.volumeLevel = this.el.querySelector("#volume-level")
     this.connected = false
     this.connecting = false
     this.onPlaying = () => this.markLive()
     this.onJoin = () => this.joinLive()
+    this.onVolume = () => this.setVolume()
     this.audio.addEventListener("playing", this.onPlaying)
     this.button.addEventListener("click", this.onJoin)
+    this.volume.addEventListener("input", this.onVolume)
+    this.setVolume()
   },
 
   markLive() {
@@ -41,6 +46,11 @@ export const RadioPlayer = {
     this.button.hidden = true
     this.el.dataset.live = "true"
     this.status.textContent = "En vivo"
+  },
+
+  setVolume() {
+    this.audio.volume = Number(this.volume.value)
+    this.volumeLevel.textContent = String(Math.round(this.audio.volume * 100))
   },
 
   async joinLive() {
@@ -61,6 +71,7 @@ export const RadioPlayer = {
   destroyed() {
     this.audio.removeEventListener("playing", this.onPlaying)
     this.button.removeEventListener("click", this.onJoin)
+    this.volume.removeEventListener("input", this.onVolume)
     this.hls?.destroy()
   },
 }
