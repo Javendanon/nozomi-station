@@ -36,3 +36,15 @@ tasks:
       categories:
         - LiveView
         - Accessibility
+  - id: 4
+    description: Extraer, limitar, persistir y mostrar el texto que acompaña enlaces de solicitudes Slack.
+    verify: mix test test/nozomi/slack/request_worker_test.exs test/nozomi/requests/request_flow_test.exs test/nozomi/programming/now_playing_test.exs test/nozomi_station_web/live/radio_live_test.exs
+    risk: P1
+    security: medium
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - Slack
+        - LiveView
+        - Security Review

@@ -3,14 +3,13 @@ active_flow: build_epic
 active_epic: e05
 active_story: e05s01
 epic_cycle:
-  step: 5
+  step: 4
   story_bcps: 8
   completed_steps:
     - 0
     - 1
     - 2
     - 3
-    - 4
 git:
   branch: feat/e05-live-player
   base: main
@@ -18,5 +17,5 @@ metrics:
   story_start: "2026-08-15T23:52:19Z"
 release: null
 handoff:
-  next_skill: verify-work
-  context: e05s01 mechanical, security, HLS, sync, and priority gates pass; human visual UAT is pending on localhost before audit/release.
+  next_skill: develop-tdd
+  context: User added bounded Slack listener messages to e05s01; implementation loops back through TDD before re-verification.

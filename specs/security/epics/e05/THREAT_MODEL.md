@@ -5,6 +5,7 @@
 - Public LiveView receives now-playing updates over Phoenix PubSub.
 - Liquidsoap's loopback-only control socket supplies request IDs and trusted local media paths.
 - Last.fm `track.getInfo` supplies untrusted JSON text and optional image URLs.
+- Public Slack message text becomes an optional listener message rendered in LiveView.
 - Browser renders external metadata and plays the existing same-origin HLS stream.
 
 ## Risk: medium
@@ -15,7 +16,7 @@ The feature crosses two external-data boundaries but adds no authenticated or mu
 
 | Category | Threat | Control |
 |---|---|---|
-| XSS (CWE-79) | Last.fm biography, titles, or tags contain markup | Render only HEEx text values; never use `raw`, `innerHTML`, or inline scripts |
+| XSS (CWE-79) | Last.fm metadata or Slack listener messages contain markup | Bound Slack text to 280 characters and render only HEEx text values; never use `raw`, `innerHTML`, or inline scripts |
 | SSRF | Provider data controls a server request destination | Keep Req URL fixed to `https://ws.audioscrobbler.com/2.0/`; provider values are query parameters only |
 | Remote resource abuse | Provider returns an arbitrary image URL | Accept only HTTPS images from the Last.fm image CDN allowlist; omit all others |
 | Command injection | Metadata reaches Liquidsoap control commands | Current-track polling sends only fixed commands and numeric request IDs; media path translation remains bounded |

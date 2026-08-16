@@ -47,9 +47,13 @@ La pista actual se obtiene como la solicitud activa de Liquidsoap que ya no est�
 
 Una escena CSS Neo-Tokyo y una onda animada indican reproducción. Ambas respetan `prefers-reduced-motion`; el video final sustituirá la escena cuando exista el recurso.
 
+### ADDED: Mensaje del oyente
+
+El texto libre que acompaña uno o más enlaces en Slack se normaliza, limita a 280 caracteres y se conserva con cada solicitud. La estación lo muestra solo mientras suena esa solicitud; mensajes formados únicamente por enlaces o puntuación se omiten.
+
 ## 8. Data
 
-Título, artista, duración, álbum, portada, etiquetas y reseña. No se persisten nuevos datos: la ficha enriquecida vive en el proceso singleton durante la pista.
+Título, artista, duración, álbum, portada, etiquetas, reseña y mensaje opcional del oyente. Solo el mensaje se persiste con la solicitud; la ficha enriquecida vive en el proceso singleton durante la pista.
 
 ## 9. Interfaces
 
@@ -103,6 +107,11 @@ Scenario: Faltan datos opcionales
   Given que Last.fm no devuelve portada ni reseña
   When se actualiza el reproductor
   Then esas secciones permanecen ocultas y el audio continúa
+
+Scenario: Dedicatoria alrededor del enlace
+  Given un mensaje Slack con texto antes o después del enlace
+  When la solicitud llega a reproducirse
+  Then la estación muestra el texto sin el enlace
 
 Scenario: Movimiento reducido
   Given que el sistema solicita movimiento reducido

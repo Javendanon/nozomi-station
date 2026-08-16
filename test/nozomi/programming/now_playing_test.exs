@@ -1,18 +1,22 @@
 defmodule NozomiStation.Programming.NowPlayingTest do
   use NozomiStation.DataCase, async: false
 
-  alias NozomiStation.Programming.{ComplementaryTrack, NowPlaying}
+  alias NozomiStation.Programming.NowPlaying
   alias NozomiStation.Repo
+  alias NozomiStation.Requests.Request
 
   test "publishes the active database track enriched once" do
     track =
-      %ComplementaryTrack{}
-      |> ComplementaryTrack.changeset(%{
+      %Request{}
+      |> Request.changeset(%{
         youtube_id: "now-playing",
         title: "Blue Monday",
         artist: "New Order",
         duration_seconds: 451,
-        origin: "seed",
+        slack_user: "U01",
+        slack_channel: "C01",
+        thread_ts: "123.45",
+        listener_message: "Para el viaje nocturno",
         status: "queued",
         file_path: "tmp/media/c1.m4a"
       })
@@ -35,6 +39,7 @@ defmodule NozomiStation.Programming.NowPlayingTest do
     assert now_playing.title == "Blue Monday"
     assert now_playing.artist == "New Order"
     assert now_playing.album == "Substance"
+    assert now_playing.listener_message == "Para el viaje nocturno"
     assert NowPlaying.current(pid) == now_playing
   end
 

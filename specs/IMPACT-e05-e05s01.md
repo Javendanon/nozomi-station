@@ -2,7 +2,7 @@
 
 ## Target
 
-`RadioLive`, `LiquidsoapClient`, and `Lastfm` gain a shared now-playing read path and enriched public presentation.
+`RadioLive`, `LiquidsoapClient`, `Lastfm`, `Request`, and `RequestProcessor` gain a shared now-playing read path, enriched presentation, and an optional listener message extracted from Slack.
 
 ## Purpose, callers, contracts
 
@@ -13,6 +13,7 @@
 ## Dependents
 
 - `lib/nozomi_station/application.ex`: supervises the single poller.
+- `lib/nozomi_station/requests/request_flow.ex`: persists the nullable, bounded listener message supplied by `RequestProcessor`.
 - `lib/nozomi_station/programming/scheduler.ex`: retains existing `active_paths/0` behavior.
 - `lib/nozomi_station/programming/refill_worker.ex`: retains recommendation behavior.
 - `assets/js/radio_player.mjs`: retains native HLS/hls.js join and cleanup contracts.

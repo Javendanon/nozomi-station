@@ -33,7 +33,8 @@ defmodule NozomiStationWeb.RadioLiveTest do
          album: "Substance",
          cover_url: "https://lastfm-img.freetls.fastly.net/i/u/300x300/cover.jpg",
          tags: ["new wave", "80s"],
-         summary: "A classic."
+         summary: "A classic.",
+         listener_message: "Para quienes siguen despiertos"
        }}
     )
 
@@ -42,6 +43,7 @@ defmodule NozomiStationWeb.RadioLiveTest do
     assert has_element?(first, "#now-playing-album", "Substance")
     assert has_element?(first, "#now-playing-cover[src*='lastfm-img.freetls.fastly.net']")
     assert has_element?(first, "#now-playing-summary", "A classic.")
+    assert has_element?(first, "#listener-message", "Para quienes siguen despiertos")
   end
 
   test "hides missing optional metadata without removing the player", %{conn: conn} do
