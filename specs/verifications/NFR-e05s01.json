@@ -1,0 +1,36 @@
+{
+  "story_id": "e05s01",
+  "generated_at": "2026-08-16T18:22:46Z",
+  "verdict": "PASS_WITH_MANUAL_UAT_PENDING",
+  "performance": {
+    "status": "pass",
+    "evidence": "One supervised process polls Liquidsoap every 2000 ms and enriches only on path changes; listeners receive PubSub without per-listener provider calls.",
+    "capacity_target": 50
+  },
+  "reliability": {
+    "status": "pass",
+    "evidence": "Tests prove unchanged paths are not republished, ended paths clear once, and control/provider failures preserve playback and the last valid track."
+  },
+  "operability": {
+    "status": "pass",
+    "evidence": "now_playing_changed and now_playing_poll_failed logs expose transitions and bounded failures without credentials."
+  },
+  "quality": {
+    "elixir_tests": 71,
+    "javascript_tests": 3,
+    "product_coverage_percent": 91.14,
+    "npm_vulnerabilities": 0,
+    "retired_hex_packages": 0
+  },
+  "integration": {
+    "liquidsoap_hls": "pass",
+    "hls_sync": "pass",
+    "programming_priority": "pass",
+    "real_current_path": "tmp/media/c4.m4a",
+    "localhost_status": 200
+  },
+  "pending": [
+    "Human visual confirmation on desktop/mobile and prefers-reduced-motion",
+    "Real Last.fm enrichment smoke after LASTFM_API_KEY is placed in .env"
+  ]
+}

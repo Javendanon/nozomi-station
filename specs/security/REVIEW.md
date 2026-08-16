@@ -68,3 +68,44 @@ Full `main...HEAD` branch diff: Last.fm recommendations, yt-dlp JSON and cookie 
 - `specs/verifications/e03s01-verify.yaml`
 - `specs/verifications/NFR-e03s01.json`
 - `scripts/verify-programming-priority.sh`
+
+---
+
+# Security review — e05s01 live player
+
+## Verdict
+
+**PASS** — no unresolved HIGH findings with confidence ≥ 8.
+
+## Scope
+
+`main...feat/e05-live-player`: Liquidsoap current-request detection, singleton PubSub updates, Last.fm `track.getInfo`, remote cover rendering, LiveView metadata, and the existing HLS hook.
+
+## Boundary checks
+
+- Liquidsoap polling emits only fixed commands; request IDs must be decimal before entering `request.metadata <id>`.
+- Local filenames still pass the bounded media-root translation used by e03.
+- Last.fm requests retain the fixed HTTPS API endpoint, disabled redirects, and ten-second timeout.
+- The API key remains server-only; no request options or credentials are logged or assigned to LiveView.
+- Cover URLs require HTTPS and the exact `lastfm.freetls.fastly.net` host; all other provider URLs are omitted.
+- Provider text is rendered through normal HEEx escaping. No `raw`, `innerHTML`, inline scripts, or template evaluation was added.
+- Provider and control failures alter only display state; the audio element and queue are not mutated.
+- Test polling is disabled, preserving the zero-network automated-test contract.
+
+## Dependency and scanner evidence
+
+- No dependencies added.
+- `npm audit --omit=dev`: zero vulnerabilities.
+- `mix hex.audit`: no retired packages.
+
+## Residual risks
+
+- Browser image requests disclose the listener IP to Last.fm's CDN. The image is optional and uses `referrerpolicy=no-referrer`; a same-origin image proxy can be added if privacy requirements increase.
+- Last.fm can omit or change metadata fields; the player falls back to durable title and artist.
+- The final background video is not included; the provisional scene uses local CSS only.
+
+## Evidence
+
+- `specs/security/epics/e05/THREAT_MODEL.md`
+- `specs/verifications/e05s01-verify.yaml`
+- `specs/verifications/NFR-e05s01.json`

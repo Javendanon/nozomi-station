@@ -1,0 +1,55 @@
+story_id: e05s01
+verified_at: "2026-08-16T18:22:46Z"
+verifier: verify-work
+risk: P0
+status: pending_human_uat
+phases:
+  cold_start:
+    passed: true
+    evidence: Phoenix restarted from .env and returned HTTP 200 on localhost:4000.
+  build:
+    passed: true
+    command: mix assets.build
+  tests:
+    passed: true
+    elixir: 71
+    javascript: 3
+    network_requests: 0
+  coverage:
+    passed: true
+    percent: 91.14
+    threshold: 90.0
+  dependencies:
+    npm_audit: 0 vulnerabilities
+    hex_audit: no retired packages
+  integrations:
+    liquidsoap_hls: pass
+    hls_sync: pass
+    programming_priority: pass
+    current_path: "{:ok, tmp/media/c4.m4a}"
+  terminal_verdict:
+    command: mix precommit && mix test --cover
+    exit_code: 0
+    captured_at: "2026-08-16T18:22:46Z"
+    note: Single contiguous run; 71 tests passed and coverage was 91.14%.
+  security:
+    passed: true
+    findings_high: 0
+    report: specs/security/REVIEW.md
+  manual:
+    passed: false
+    pending:
+      - Open localhost:4000 on desktop and mobile-sized viewport.
+      - Confirm the Neo-Tokyo scene, current title and artist are readable.
+      - Join from two windows and confirm both update to the same track without interrupting audio.
+      - Enable prefers-reduced-motion and confirm rails and waveform stop animating.
+      - Populate LASTFM_API_KEY in .env and confirm optional album, cover, tags and summary.
+  gaps:
+    closed: false
+    items:
+      - Human perceptual UAT remains pending before merge approval.
+skips:
+  - item: Final background video
+    reason: The user has not supplied the asset; the accepted provisional CSS scene is local and replaceable.
+  - item: Real Last.fm smoke
+    reason: The local .env file is currently empty; deterministic fixed-host parsing and fallback tests pass.

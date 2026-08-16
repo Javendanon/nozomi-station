@@ -1,6 +1,6 @@
 story_id: e05s01
 title: Subir al tren y ver la canción actual
-status: failing
+status: in_progress
 bcps: 8
 tasks:
   - id: 1
@@ -8,7 +8,7 @@ tasks:
     verify: mix test test/nozomi/programming/liquidsoap_client_test.exs test/nozomi/programming/now_playing_test.exs
     risk: P0
     security: medium
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -19,7 +19,7 @@ tasks:
     verify: mix test test/nozomi/programming/lastfm_test.exs
     risk: P1
     security: medium
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
@@ -30,7 +30,7 @@ tasks:
     verify: mix test test/nozomi_station_web/live/radio_live_test.exs && npm --prefix assets test -- js/radio_player.test.mjs
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
