@@ -1,5 +1,5 @@
 defmodule NozomiStation.Programming.NowPlayingTest do
-  use NozomiStation.DataCase, async: true
+  use NozomiStation.DataCase, async: false
 
   alias NozomiStation.Programming.{ComplementaryTrack, NowPlaying}
   alias NozomiStation.Repo

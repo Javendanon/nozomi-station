@@ -13,6 +13,7 @@ defmodule NozomiStation.Application do
       {Oban, Application.fetch_env!(:nozomi_station, Oban)},
       {DNSCluster, query: Application.get_env(:nozomi_station, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: NozomiStation.PubSub},
+      NozomiStation.Programming.NowPlaying,
       # Start a worker by calling: NozomiStation.Worker.start_link(arg)
       # {NozomiStation.Worker, arg},
       # Start to serve requests, typically the last entry
