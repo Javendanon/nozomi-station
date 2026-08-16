@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import {connectToLiveStream, RadioPlayer} from "./radio_player.mjs"
+import {connectToLiveStream, RadioPlayer, VolumeControl} from "./radio_player.mjs"
 
 const audio = nativeHls => ({
   canPlayType: () => nativeHls ? "maybe" : "",
@@ -58,14 +58,10 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
   const button = eventTarget({})
   const streamAudio = eventTarget(audio(true))
   const status = {textContent: "En vivo"}
-  const volume = eventTarget({value: "0.65"})
-  const volumeLevel = {textContent: "65"}
   const elements = {
     "#join-live": button,
     "#live-audio": streamAudio,
     "#stream-status": status,
-    "#volume-control": volume,
-    "#volume-level": volumeLevel,
   }
   const hook = {
     ...RadioPlayer,
@@ -77,11 +73,6 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
   hook.hls = {destroy: () => destroyed++}
   await streamAudio.trigger("playing")
 
-  assert.equal(streamAudio.volume, 0.65)
-  volume.value = "0.25"
-  volume.trigger("input")
-  assert.equal(streamAudio.volume, 0.25)
-  assert.equal(volumeLevel.textContent, "25")
   assert.equal(button.hidden, true)
   assert.equal(hook.el.dataset.live, "true")
   await button.trigger("click")
@@ -92,5 +83,25 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
   assert.equal(destroyed, 1)
   assert.equal(button.listensTo("click"), false)
   assert.equal(streamAudio.listensTo("playing"), false)
+})
+
+test("moves the Shinkansen volume control in one-percent steps without reconnecting", () => {
+  const streamAudio = audio(true)
+  const volume = eventTarget({value: "0.65"})
+  const volumeLevel = {textContent: "65"}
+  const elements = {"#volume-control": volume, "#volume-level": volumeLevel}
+  const hook = {
+    ...VolumeControl,
+    el: {querySelector: selector => elements[selector]},
+    audio: streamAudio,
+  }
+
+  hook.mounted()
+  assert.equal(streamAudio.volume, 0.65)
+  volume.value = "0.64"
+  volume.trigger("input")
+  assert.equal(streamAudio.volume, 0.64)
+  assert.equal(volumeLevel.textContent, "64")
+  hook.destroyed()
   assert.equal(volume.listensTo("input"), false)
 })

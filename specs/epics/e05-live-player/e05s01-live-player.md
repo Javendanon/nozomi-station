@@ -53,7 +53,7 @@ El texto libre que acompaña uno o más enlaces en Slack se normaliza, limita a 
 
 ### ADDED: Control de volumen
 
-Un control nativo de rango, diseñado como el mando maestro de un Shinkansen, ajusta el volumen local del elemento de audio sin reconectar ni modificar la emisión compartida.
+Un control nativo de rango, diseñado como una línea ferroviaria con un Shinkansen móvil, ajusta el volumen local en pasos de 1% sin reconectar ni modificar la emisión compartida. Vive junto a la ficha musical para no chocar ni desplazarse con el botón de entrada.
 
 ## 8. Data
 

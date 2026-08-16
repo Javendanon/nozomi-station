@@ -16,8 +16,9 @@ defmodule NozomiStationWeb.RadioLiveTest do
     assert has_element?(view, "#stream-status", "Conectando")
     assert has_element?(view, "#neo-journey")
     assert has_element?(view, "#signal-wave[aria-hidden='true']")
-    assert has_element?(view, "#volume-control[type='range'][min='0'][max='1']")
-    assert has_element?(view, "label[for='volume-control']", "Mando maestro")
+    assert has_element?(view, "#station-side > #volume-controller[phx-hook='VolumeControl']")
+    assert has_element?(view, "#volume-control[type='range'][min='0'][max='1'][step='0.01']")
+    assert has_element?(view, "label[for='volume-control']", "Línea de volumen")
   end
 
   test "updates two listeners with the same current track", %{conn: conn} do
