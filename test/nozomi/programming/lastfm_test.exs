@@ -17,7 +17,7 @@ defmodule NozomiStation.Programming.LastfmTest do
                "image" => [
                  %{"#text" => "", "size" => "small"},
                  %{
-                   "#text" => "https://lastfm.freetls.fastly.net/i/u/300x300/cover.jpg",
+                   "#text" => "https://lastfm-img.freetls.fastly.net/i/u/300x300/cover.jpg",
                    "size" => "large"
                  }
                ]
@@ -35,7 +35,7 @@ defmodule NozomiStation.Programming.LastfmTest do
     assert {:ok,
             %{
               album: "Substance",
-              cover_url: "https://lastfm.freetls.fastly.net/i/u/300x300/cover.jpg",
+              cover_url: "https://lastfm-img.freetls.fastly.net/i/u/300x300/cover.jpg",
               tags: ["new wave", "80s"],
               summary: "A classic."
             }} = Lastfm.track_info("New Order", "Blue Monday", request)
