@@ -42,7 +42,7 @@ export const RadioPlayer = {
     this.button.disabled = true
     this.button.ariaLabel = "Emisión en vivo"
     this.el.dataset.live = "true"
-    this.status.textContent = "Señal sincronizada"
+    this.status.hidden = true
   },
 
   async joinLive() {
