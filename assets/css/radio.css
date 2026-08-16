@@ -118,6 +118,12 @@ body {
   letter-spacing: -0.075em;
 }
 
+.station-side {
+  display: grid;
+  align-self: end;
+  gap: 0.75rem;
+}
+
 .now-playing-card {
   display: grid;
   grid-template-columns: minmax(6rem, 10rem) 1fr;
@@ -227,61 +233,102 @@ body {
   gap: 0.8rem;
 }
 
-.master-controller {
+.nozomi-volume {
   display: grid;
-  width: 10rem;
-  gap: 0.3rem;
+  gap: 0.2rem;
+  padding: 0.8rem 1rem 0.65rem;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 0.9rem;
+  background: rgb(7 7 12 / 0.78);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.22), inset 0 1px rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(18px);
 }
 
-.master-controller label {
-  color: rgb(244 240 232 / 0.62);
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+.volume-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.volume-heading label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.master-controller label span { color: var(--nozomi-red); }
+.volume-heading label i {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--nozomi-red);
+  box-shadow: 0 0 10px var(--nozomi-red);
+}
 
-.master-controller-track {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: rgb(244 240 232 / 0.62);
-  font-size: 0.62rem;
+.volume-heading > span {
+  color: rgb(244 240 232 / 0.38);
+  font: 650 0.52rem/1 monospace;
+  letter-spacing: 0.12em;
 }
 
 #volume-control {
-  width: 6.5rem;
-  height: 1.1rem;
+  width: 100%;
+  height: 1.75rem;
   cursor: pointer;
   appearance: none;
-  border: 1px solid rgb(255 255 255 / 0.18);
-  border-radius: 2px;
-  background: repeating-linear-gradient(90deg, #181821 0 12px, #32323c 13px 14px);
+  background: transparent;
+}
+
+#volume-control::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--nozomi-blue), rgb(255 255 255 / 0.22) 55%, var(--nozomi-red));
 }
 
 #volume-control::-webkit-slider-thumb {
-  width: 0.7rem;
-  height: 1.65rem;
+  width: 1.55rem;
+  height: 1.7rem;
+  margin-top: -0.75rem;
   appearance: none;
-  border: 1px solid #ff7b86;
-  border-radius: 2px;
-  background: var(--nozomi-red);
-  box-shadow: 0 0 12px rgb(255 53 71 / 0.45);
+  border: 2px solid white;
+  border-radius: 58% 58% 36% 36%;
+  background:
+    linear-gradient(90deg, transparent 24%, #142534 25% 43%, transparent 44% 56%, #142534 57% 75%, transparent 76%) center 30% / 100% 32% no-repeat,
+    linear-gradient(180deg, #fff 0 62%, var(--nozomi-red) 63% 74%, #cbd8dd 75% 100%);
+  box-shadow: 0 0 0 3px rgb(69 215 255 / 0.14), 0 4px 12px rgb(0 0 0 / 0.5);
+}
+
+#volume-control::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--nozomi-blue), rgb(255 255 255 / 0.22) 55%, var(--nozomi-red));
 }
 
 #volume-control::-moz-range-thumb {
-  width: 0.7rem;
-  height: 1.65rem;
-  border: 1px solid #ff7b86;
-  border-radius: 2px;
-  background: var(--nozomi-red);
-  box-shadow: 0 0 12px rgb(255 53 71 / 0.45);
+  width: 1.55rem;
+  height: 1.7rem;
+  border: 2px solid white;
+  border-radius: 58% 58% 36% 36%;
+  background:
+    linear-gradient(90deg, transparent 24%, #142534 25% 43%, transparent 44% 56%, #142534 57% 75%, transparent 76%) center 30% / 100% 32% no-repeat,
+    linear-gradient(180deg, #fff 0 62%, var(--nozomi-red) 63% 74%, #cbd8dd 75% 100%);
+  box-shadow: 0 0 0 3px rgb(69 215 255 / 0.14), 0 4px 12px rgb(0 0 0 / 0.5);
 }
 
-#volume-control:focus-visible { outline: 2px solid var(--nozomi-blue); outline-offset: 3px; }
-#volume-level { min-width: 1.3rem; color: var(--nozomi-paper); text-align: right; }
+.volume-terminals {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgb(244 240 232 / 0.35);
+  font-size: 0.48rem;
+}
+
+.volume-terminals i { height: 1px; background: rgb(255 255 255 / 0.08); }
+#volume-control:focus-visible { outline: 2px solid var(--nozomi-blue); outline-offset: 1px; }
 
 #join-live {
   cursor: pointer;
@@ -309,7 +356,7 @@ body {
   .track-summary { display: none; }
   .signal-wave { width: 30vw; }
   .station-player { gap: 1rem; }
-  #radio-player { min-width: auto; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+  #radio-player { min-width: 9rem; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

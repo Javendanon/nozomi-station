@@ -17,8 +17,8 @@
   },
   "quality": {
     "elixir_tests": 71,
-    "javascript_tests": 3,
-    "product_coverage_percent": 91.14,
+    "javascript_tests": 4,
+    "product_coverage_percent": 90.81,
     "npm_vulnerabilities": 0,
     "retired_hex_packages": 0
   },
@@ -33,7 +33,9 @@
       "cover_allowlisted": true,
       "tag_count": 5,
       "summary": true
-    }
+    },
+    "listener_message": "Slack text is bounded to 280 characters, persisted, HEEx-escaped, and omitted for link-only messages",
+    "local_volume": "Native range control changes only HTMLAudioElement.volume without reconnecting HLS"
   },
   "pending": [
     "Human visual confirmation on desktop/mobile and prefers-reduced-motion",

@@ -88,8 +88,7 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
 test("moves the Shinkansen volume control in one-percent steps without reconnecting", () => {
   const streamAudio = audio(true)
   const volume = eventTarget({value: "0.65"})
-  const volumeLevel = {textContent: "65"}
-  const elements = {"#volume-control": volume, "#volume-level": volumeLevel}
+  const elements = {"#volume-control": volume}
   const hook = {
     ...VolumeControl,
     el: {querySelector: selector => elements[selector]},
@@ -101,7 +100,6 @@ test("moves the Shinkansen volume control in one-percent steps without reconnect
   volume.value = "0.64"
   volume.trigger("input")
   assert.equal(streamAudio.volume, 0.64)
-  assert.equal(volumeLevel.textContent, "64")
   hook.destroyed()
   assert.equal(volume.listensTo("input"), false)
 })

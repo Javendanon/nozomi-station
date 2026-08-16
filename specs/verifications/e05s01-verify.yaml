@@ -13,11 +13,11 @@ phases:
   tests:
     passed: true
     elixir: 71
-    javascript: 3
+    javascript: 4
     network_requests: 0
   coverage:
     passed: true
-    percent: 91.14
+    percent: 90.81
     threshold: 90.0
   dependencies:
     npm_audit: 0 vulnerabilities
@@ -27,6 +27,9 @@ phases:
     hls_sync: pass
     programming_priority: pass
     current_path: "{:ok, tmp/media/c4.m4a}"
+    listener_message: extraction, 280-character persistence, empty-message omission, and LiveView rendering pass
+    volume: stable card-side native range updates local audio in 1% steps and cleans up its event listener
+    migration_reversal: pass
     lastfm_real:
       album: Substance 1987
       cover_allowlisted: true
@@ -35,8 +38,8 @@ phases:
   terminal_verdict:
     command: mix precommit && mix test --cover
     exit_code: 0
-    captured_at: "2026-08-16T18:33:37Z"
-    note: Single contiguous run; 71 tests passed and coverage was 91.14%.
+    captured_at: "2026-08-16T18:51:07Z"
+    note: Single contiguous run; 71 tests passed and coverage was 90.81%.
   security:
     passed: true
     findings_high: 0

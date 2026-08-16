@@ -44,44 +44,70 @@ defmodule NozomiStationWeb.RadioLive do
             <h2>La noche avanza.<br />La música también.</h2>
           </div>
 
-          <article :if={@now_playing} id="now-playing" class="now-playing-card">
-            <img
-              :if={Map.get(@now_playing, :cover_url)}
-              id="now-playing-cover"
-              src={Map.get(@now_playing, :cover_url)}
-              alt={"Portada de #{Map.get(@now_playing, :title)}"}
-              referrerpolicy="no-referrer"
-            />
-            <div class="now-playing-copy">
-              <p class="station-eyebrow">Ahora suena</p>
-              <h3 id="now-playing-title">{Map.get(@now_playing, :title)}</h3>
-              <p id="now-playing-artist">{Map.get(@now_playing, :artist)}</p>
-              <p :if={Map.get(@now_playing, :album)} id="now-playing-album" class="track-album">
-                {Map.get(@now_playing, :album)}
-              </p>
-              <ul
-                :if={Map.get(@now_playing, :tags, []) != []}
-                id="now-playing-tags"
-                class="track-tags"
-              >
-                <li :for={tag <- Map.get(@now_playing, :tags, [])}>{tag}</li>
-              </ul>
-              <p
-                :if={Map.get(@now_playing, :summary)}
-                id="now-playing-summary"
-                class="track-summary"
-              >
-                {Map.get(@now_playing, :summary)}
-              </p>
-              <blockquote
-                :if={Map.get(@now_playing, :listener_message)}
-                id="listener-message"
-                class="listener-message"
-              >
-                “{Map.get(@now_playing, :listener_message)}”
-              </blockquote>
+          <div id="station-side" class="station-side">
+            <article :if={@now_playing} id="now-playing" class="now-playing-card">
+              <img
+                :if={Map.get(@now_playing, :cover_url)}
+                id="now-playing-cover"
+                src={Map.get(@now_playing, :cover_url)}
+                alt={"Portada de #{Map.get(@now_playing, :title)}"}
+                referrerpolicy="no-referrer"
+              />
+              <div class="now-playing-copy">
+                <p class="station-eyebrow">Ahora suena</p>
+                <h3 id="now-playing-title">{Map.get(@now_playing, :title)}</h3>
+                <p id="now-playing-artist">{Map.get(@now_playing, :artist)}</p>
+                <p :if={Map.get(@now_playing, :album)} id="now-playing-album" class="track-album">
+                  {Map.get(@now_playing, :album)}
+                </p>
+                <ul
+                  :if={Map.get(@now_playing, :tags, []) != []}
+                  id="now-playing-tags"
+                  class="track-tags"
+                >
+                  <li :for={tag <- Map.get(@now_playing, :tags, [])}>{tag}</li>
+                </ul>
+                <p
+                  :if={Map.get(@now_playing, :summary)}
+                  id="now-playing-summary"
+                  class="track-summary"
+                >
+                  {Map.get(@now_playing, :summary)}
+                </p>
+                <blockquote
+                  :if={Map.get(@now_playing, :listener_message)}
+                  id="listener-message"
+                  class="listener-message"
+                >
+                  “{Map.get(@now_playing, :listener_message)}”
+                </blockquote>
+              </div>
+            </article>
+
+            <div
+              id="volume-controller"
+              class="nozomi-volume"
+              phx-hook="VolumeControl"
+              phx-update="ignore"
+            >
+              <div class="volume-heading">
+                <label for="volume-control"><i aria-hidden="true"></i> Volumen</label>
+                <span aria-hidden="true">N700 AUDIO</span>
+              </div>
+              <input
+                id="volume-control"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value="0.8"
+                aria-label="Volumen del reproductor"
+              />
+              <div class="volume-terminals" aria-hidden="true">
+                <span>静</span><i></i><span>のぞみ</span>
+              </div>
             </div>
-          </article>
+          </div>
         </div>
 
         <footer class="station-player">
@@ -95,24 +121,6 @@ defmodule NozomiStationWeb.RadioLive do
             phx-hook="RadioPlayer"
             phx-update="ignore"
           >
-            <div class="master-controller">
-              <label for="volume-control">
-                Mando maestro <span aria-hidden="true">音量</span>
-              </label>
-              <div class="master-controller-track">
-                <span aria-hidden="true">切</span>
-                <input
-                  id="volume-control"
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value="0.8"
-                  aria-label="Volumen del reproductor"
-                />
-                <output id="volume-level" for="volume-control">80</output><span aria-hidden="true">%</span>
-              </div>
-            </div>
             <button id="join-live" type="button" aria-label="Subir al tren y escuchar en vivo">
               <span aria-hidden="true">▶</span> Subir al tren
             </button>
