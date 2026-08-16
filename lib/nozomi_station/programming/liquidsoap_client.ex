@@ -74,6 +74,7 @@ defmodule NozomiStation.Programming.LiquidsoapClient do
       from_liquidsoap_path(path, options)
     else
       value when value in [true, false, nil] -> :finished
+      {:error, _reason} = error -> error
       _ -> {:error, :invalid_control_response}
     end
   end

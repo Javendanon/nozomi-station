@@ -31,6 +31,7 @@ defmodule NozomiStationWeb.RadioLiveTest do
          artist: "New Order",
          duration_seconds: 451,
          album: "Substance",
+         cover_url: "https://lastfm.freetls.fastly.net/i/u/300x300/cover.jpg",
          tags: ["new wave", "80s"],
          summary: "A classic."
        }}
@@ -39,6 +40,7 @@ defmodule NozomiStationWeb.RadioLiveTest do
     assert has_element?(first, "#now-playing-title", "Blue Monday")
     assert has_element?(second, "#now-playing-title", "Blue Monday")
     assert has_element?(first, "#now-playing-album", "Substance")
+    assert has_element?(first, "#now-playing-cover[src*='lastfm.freetls.fastly.net']")
     assert has_element?(first, "#now-playing-summary", "A classic.")
   end
 

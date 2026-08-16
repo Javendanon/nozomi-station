@@ -38,6 +38,38 @@ defmodule NozomiStation.Programming.NowPlayingTest do
     assert NowPlaying.current(pid) == now_playing
   end
 
+  test "clears a finished track without repeating unchanged updates" do
+    paths =
+      start_supervised!({Agent, fn -> ["tmp/media/track.m4a", "tmp/media/track.m4a", nil] end})
+
+    topic = "now-playing-test-#{System.unique_integer([:positive])}"
+    Phoenix.PubSub.subscribe(NozomiStation.PubSub, topic)
+
+    current_path = fn ->
+      Agent.get_and_update(paths, fn [path | rest] -> {{:ok, path}, rest} end)
+    end
+
+    pid =
+      start_supervised!(
+        {NowPlaying,
+         name: nil,
+         topic: topic,
+         poll_interval: 60_000,
+         current_path: current_path,
+         lookup: fn _path -> %{title: "Track", artist: "Artist", duration_seconds: 180} end,
+         enrich: fn _track -> {:error, :provider_unavailable} end}
+      )
+
+    assert_receive {:now_playing, %{title: "Track"}}
+    send(pid, :poll)
+    _ = :sys.get_state(pid)
+    refute_receive {:now_playing, _}
+
+    send(pid, :poll)
+    assert_receive {:now_playing, nil}
+    assert NowPlaying.current(pid) == nil
+  end
+
   test "retains the last track when the control boundary fails" do
     calls = start_supervised!({Agent, fn -> 0 end})
     topic = "now-playing-test-#{System.unique_integer([:positive])}"

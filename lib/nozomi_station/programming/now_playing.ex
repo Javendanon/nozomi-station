@@ -33,7 +33,7 @@ defmodule NozomiStation.Programming.NowPlaying do
       enrich: Keyword.get(options, :enrich, &enrich/1)
     }
 
-    send(self(), :poll)
+    if Keyword.get(options, :poll, true), do: send(self(), :poll)
     {:ok, state}
   end
 

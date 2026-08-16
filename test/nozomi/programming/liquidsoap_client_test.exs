@@ -51,6 +51,48 @@ defmodule NozomiStation.Programming.LiquidsoapClientTest do
     assert {:ok, "tmp/media/c3.m4a"} = LiquidsoapClient.current_path(command, [])
   end
 
+  test "returns no current path while every request remains queued" do
+    command = fn
+      "request.all" -> {:ok, ["8 9"]}
+      "requested.queue" -> {:ok, ["8"]}
+      "complementary.queue" -> {:ok, ["9"]}
+    end
+
+    assert {:ok, nil} = LiquidsoapClient.current_path(command, [])
+  end
+
+  test "handles a current request that finishes during metadata lookup" do
+    base = fn
+      "request.all" -> {:ok, ["8"]}
+      "requested.queue" -> {:ok, []}
+      "complementary.queue" -> {:ok, []}
+    end
+
+    assert {:ok, nil} =
+             LiquidsoapClient.current_path(
+               fn
+                 "request.metadata 8" -> {:ok, ["No such request."]}
+                 command -> base.(command)
+               end,
+               []
+             )
+
+    assert {:error, :closed} =
+             LiquidsoapClient.current_path(
+               fn
+                 "request.metadata 8" -> {:error, :closed}
+                 command -> base.(command)
+               end,
+               []
+             )
+  end
+
+  test "rejects malformed current request IDs" do
+    command = fn "request.all" -> {:ok, ["8 injected"]} end
+
+    assert {:error, :invalid_control_response} = LiquidsoapClient.current_path(command, [])
+  end
+
   test "scheduler worker delegates through the real control boundary" do
     server = server(["\r\nEND\r\nBye!\r\n"])
 

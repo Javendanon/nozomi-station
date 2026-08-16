@@ -1,5 +1,5 @@
 defmodule NozomiStation.Programming.LastfmTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias NozomiStation.Programming.Lastfm
 
@@ -56,7 +56,10 @@ defmodule NozomiStation.Programming.LastfmTest do
            "track" => %{
              "album" => %{
                "title" => "Album",
-               "image" => [%{"#text" => "https://example.com/tracker.png", "size" => "large"}]
+               "image" => [
+                 %{"unexpected" => true},
+                 %{"#text" => "https://example.com/tracker.png", "size" => "large"}
+               ]
              },
              "toptags" => %{"tag" => [%{"unexpected" => true}]},
              "wiki" => %{"summary" => 123}
@@ -66,6 +69,25 @@ defmodule NozomiStation.Programming.LastfmTest do
     end
 
     assert {:ok, %{album: "Album"}} = Lastfm.track_info("Artist", "Track", request)
+
+    malformed = fn _options ->
+      {:ok,
+       %Req.Response{
+         status: 200,
+         body: %{"track" => %{"album" => %{"image" => %{}}, "toptags" => %{}, "wiki" => %{}}}
+       }}
+    end
+
+    assert {:ok, %{}} = Lastfm.track_info("Artist", "Track", malformed)
+  end
+
+  test "skips the provider when no API key is configured" do
+    key = Application.get_env(:nozomi_station, :lastfm_api_key)
+    Application.put_env(:nozomi_station, :lastfm_api_key, nil)
+    on_exit(fn -> Application.put_env(:nozomi_station, :lastfm_api_key, key) end)
+
+    assert {:ok, %{}} =
+             Lastfm.track_info("Artist", "Track", fn _ -> flunk("unexpected network request") end)
   end
 
   test "fails softly when Last.fm is unavailable" do
