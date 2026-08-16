@@ -23,4 +23,4 @@ metrics:
 release: null
 handoff:
   next_skill: release-branch
-  context: e05s01 implementation, verification, security review, and audit pass; make PR #4 ready and wait for explicit human approval before merge.
+  context: PR #4 is ready for review with green CI; wait for explicit human approval before merge.
