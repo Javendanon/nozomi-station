@@ -26,7 +26,6 @@ export const RadioPlayer = {
   mounted() {
     this.audio = this.el.querySelector("#live-audio")
     this.button = this.el.querySelector("#join-live")
-    this.status = this.el.querySelector("#stream-status")
     this.connected = false
     this.connecting = false
     this.onPlaying = () => this.markLive()
@@ -42,21 +41,21 @@ export const RadioPlayer = {
     this.button.disabled = true
     this.button.ariaLabel = "Emisión en vivo"
     this.el.dataset.live = "true"
-    this.status.hidden = true
   },
 
   async joinLive() {
     if (this.connected || this.connecting) return
 
     this.connecting = true
-    this.status.textContent = "Conectando"
+    this.button.disabled = true
     this.hls?.destroy()
 
     try {
       this.hls = await connectToLiveStream(this.audio, this.el.dataset.stream)
     } catch (_error) {
       this.connecting = false
-      this.status.textContent = "Emisión no disponible"
+      this.button.disabled = false
+      this.button.ariaLabel = "Emisión no disponible; reintentar"
     }
   },
 

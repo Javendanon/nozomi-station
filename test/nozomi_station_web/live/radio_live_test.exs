@@ -14,7 +14,7 @@ defmodule NozomiStationWeb.RadioLiveTest do
     {:ok, view, _html} = live(conn, "/")
 
     assert has_element?(view, "#radio-player[data-stream='/hls/live.m3u8']")
-    assert has_element?(view, "#stream-status", "Conectando")
+    refute has_element?(view, "#stream-status")
     assert has_element?(view, "#neo-journey")
     assert has_element?(view, "#signal-wave[aria-hidden='true']")
     assert has_element?(view, "#station-side > #volume-controller[phx-hook='VolumeControl']")
