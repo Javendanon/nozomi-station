@@ -14,5 +14,46 @@ defmodule NozomiStationWeb.RadioLiveTest do
 
     assert has_element?(view, "#radio-player[data-stream='/hls/live.m3u8']")
     assert has_element?(view, "#stream-status", "Conectando")
+    assert has_element?(view, "#neo-journey")
+    assert has_element?(view, "#signal-wave[aria-hidden='true']")
+  end
+
+  test "updates two listeners with the same current track", %{conn: conn} do
+    {:ok, first, _html} = live(conn, "/")
+    {:ok, second, _html} = live(recycle(conn), "/")
+
+    Phoenix.PubSub.broadcast(
+      NozomiStation.PubSub,
+      "now_playing",
+      {:now_playing,
+       %{
+         title: "Blue Monday",
+         artist: "New Order",
+         duration_seconds: 451,
+         album: "Substance",
+         tags: ["new wave", "80s"],
+         summary: "A classic."
+       }}
+    )
+
+    assert has_element?(first, "#now-playing-title", "Blue Monday")
+    assert has_element?(second, "#now-playing-title", "Blue Monday")
+    assert has_element?(first, "#now-playing-album", "Substance")
+    assert has_element?(first, "#now-playing-summary", "A classic.")
+  end
+
+  test "hides missing optional metadata without removing the player", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/")
+
+    send(view.pid, {
+      :now_playing,
+      %{title: "Unknown", artist: "Artist", duration_seconds: 180}
+    })
+
+    assert has_element?(view, "#now-playing-title", "Unknown")
+    refute has_element?(view, "#now-playing-cover")
+    refute has_element?(view, "#now-playing-album")
+    refute has_element?(view, "#now-playing-summary")
+    assert has_element?(view, "#live-audio")
   end
 end

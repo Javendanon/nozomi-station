@@ -70,6 +70,7 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
   await streamAudio.trigger("playing")
 
   assert.equal(button.hidden, true)
+  assert.equal(hook.el.dataset.live, "true")
   await button.trigger("click")
   assert.equal(destroyed, 0)
   assert.equal(status.textContent, "En vivo")
