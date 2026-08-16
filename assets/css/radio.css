@@ -129,6 +129,8 @@ body {
   backdrop-filter: blur(18px);
 }
 
+.now-playing-card:not(:has(img)) { grid-template-columns: 1fr; }
+
 .now-playing-card img {
   width: 100%;
   aspect-ratio: 1;
@@ -237,10 +239,11 @@ body {
   .station-route { display: none; }
   .station-content { grid-template-columns: 1fr; align-content: center; padding-block: 2rem; }
   .station-intro h2 { font-size: clamp(2.8rem, 15vw, 5rem); }
-  .now-playing-card { grid-template-columns: 5.5rem 1fr; }
+  .now-playing-card { grid-template-columns: 4rem 1fr; gap: 1rem; }
   .track-summary { display: none; }
-  .signal-wave { width: 34vw; }
+  .signal-wave { width: 30vw; }
   .station-player { gap: 1rem; }
+  #radio-player { min-width: auto; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

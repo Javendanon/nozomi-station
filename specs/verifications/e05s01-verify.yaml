@@ -27,10 +27,15 @@ phases:
     hls_sync: pass
     programming_priority: pass
     current_path: "{:ok, tmp/media/c4.m4a}"
+    lastfm_real:
+      album: Substance 1987
+      cover_allowlisted: true
+      tags: 5
+      summary: true
   terminal_verdict:
     command: mix precommit && mix test --cover
     exit_code: 0
-    captured_at: "2026-08-16T18:22:46Z"
+    captured_at: "2026-08-16T18:33:37Z"
     note: Single contiguous run; 71 tests passed and coverage was 91.14%.
   security:
     passed: true
@@ -43,7 +48,7 @@ phases:
       - Confirm the Neo-Tokyo scene, current title and artist are readable.
       - Join from two windows and confirm both update to the same track without interrupting audio.
       - Enable prefers-reduced-motion and confirm rails and waveform stop animating.
-      - Populate LASTFM_API_KEY in .env and confirm optional album, cover, tags and summary.
+      - Confirm the real Last.fm album, cover, tags and summary render in the browser.
   gaps:
     closed: false
     items:
@@ -51,5 +56,5 @@ phases:
 skips:
   - item: Final background video
     reason: The user has not supplied the asset; the accepted provisional CSS scene is local and replaceable.
-  - item: Real Last.fm smoke
-    reason: The local .env file is currently empty; deterministic fixed-host parsing and fallback tests pass.
+  - item: Final visual Last.fm confirmation
+    reason: Real track.getInfo returned album, five tags, summary, and an allowlisted CDN cover; browser confirmation remains part of human UAT.

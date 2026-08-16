@@ -27,10 +27,16 @@
     "hls_sync": "pass",
     "programming_priority": "pass",
     "real_current_path": "tmp/media/c4.m4a",
-    "localhost_status": 200
+    "localhost_status": 200,
+    "lastfm_real": {
+      "album": "Substance 1987",
+      "cover_allowlisted": true,
+      "tag_count": 5,
+      "summary": true
+    }
   },
   "pending": [
     "Human visual confirmation on desktop/mobile and prefers-reduced-motion",
-    "Real Last.fm enrichment smoke after LASTFM_API_KEY is placed in .env"
+    "Human confirmation that the real Last.fm album, tags, summary, and CDN cover render correctly"
   ]
 }

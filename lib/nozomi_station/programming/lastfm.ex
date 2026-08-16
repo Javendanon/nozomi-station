@@ -118,7 +118,7 @@ defmodule NozomiStation.Programming.Lastfm do
 
   defp allowed_image?(url) do
     case URI.parse(url) do
-      %URI{scheme: "https", host: "lastfm.freetls.fastly.net"} -> true
+      %URI{scheme: "https", host: "lastfm-img.freetls.fastly.net"} -> true
       _ -> false
     end
   end

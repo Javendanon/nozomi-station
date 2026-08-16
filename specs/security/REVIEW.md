@@ -87,7 +87,7 @@ Full `main...HEAD` branch diff: Last.fm recommendations, yt-dlp JSON and cookie 
 - Local filenames still pass the bounded media-root translation used by e03.
 - Last.fm requests retain the fixed HTTPS API endpoint, disabled redirects, and ten-second timeout.
 - The API key remains server-only; no request options or credentials are logged or assigned to LiveView.
-- Cover URLs require HTTPS and the exact `lastfm.freetls.fastly.net` host; all other provider URLs are omitted.
+- Cover URLs require HTTPS and the exact `lastfm-img.freetls.fastly.net` host; all other provider URLs are omitted.
 - Provider text is rendered through normal HEEx escaping. No `raw`, `innerHTML`, inline scripts, or template evaluation was added.
 - Provider and control failures alter only display state; the audio element and queue are not mutated.
 - Test polling is disabled, preserving the zero-network automated-test contract.
