@@ -11,6 +11,7 @@ defmodule NozomiStation.Requests.Request do
     field(:slack_user, :string)
     field(:slack_channel, :string)
     field(:thread_ts, :string)
+    field(:listener_message, :string)
     field(:status, :string, default: "preparing")
     field(:file_path, :string)
     timestamps(type: :utc_datetime)
@@ -26,6 +27,7 @@ defmodule NozomiStation.Requests.Request do
       :slack_user,
       :slack_channel,
       :thread_ts,
+      :listener_message,
       :status,
       :file_path
     ])
@@ -39,6 +41,7 @@ defmodule NozomiStation.Requests.Request do
       :thread_ts,
       :status
     ])
+    |> validate_length(:listener_message, max: 280)
     |> unique_constraint(:youtube_id, name: :requests_active_youtube_id_index)
   end
 end

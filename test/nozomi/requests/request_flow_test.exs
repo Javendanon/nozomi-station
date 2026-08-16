@@ -13,10 +13,16 @@ defmodule NozomiStation.Requests.RequestFlowTest do
 
     runner = &successful_runner/2
 
-    requester = %{slack_user: "U01", slack_channel: "C01", thread_ts: "123.45"}
+    requester = %{
+      slack_user: "U01",
+      slack_channel: "C01",
+      thread_ts: "123.45",
+      listener_message: "Esta canción me gusta"
+    }
 
     assert {:ok, request, 1} = RequestFlow.prepare(track, requester, runner)
     assert request.status == "ready"
+    assert request.listener_message == "Esta canción me gusta"
     assert File.read!(request.file_path) == "prepared"
 
     assert_received {:yt_dlp, args}

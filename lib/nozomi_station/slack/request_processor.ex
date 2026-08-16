@@ -2,6 +2,8 @@ defmodule NozomiStation.Slack.RequestProcessor do
   require Logger
 
   @url ~r{https://[^\s>|]+}
+  @slack_link ~r{<https://[^>]+>}
+  @trailing_url_punctuation [".", ",", "!", "?", ":", ";"]
   @permanent_errors [:duplicate, :invalid_duration, :invalid_url, :not_playable, :unsupported_url]
 
   def process(%{"event" => event}, deps) do
@@ -64,7 +66,8 @@ defmodule NozomiStation.Slack.RequestProcessor do
     %{
       slack_user: event["user"],
       slack_channel: event["channel"],
-      thread_ts: event["ts"]
+      thread_ts: event["ts"],
+      listener_message: listener_message(event["text"])
     }
   end
 
@@ -73,6 +76,30 @@ defmodule NozomiStation.Slack.RequestProcessor do
       not Map.has_key?(event, "bot_id") and not Map.has_key?(event, "subtype")
   end
 
-  defp links(text) when is_binary(text), do: @url |> Regex.scan(text) |> List.flatten()
+  defp links(text) when is_binary(text) do
+    @url
+    |> Regex.scan(text)
+    |> List.flatten()
+    |> Enum.map(&trim_url/1)
+  end
+
   defp links(_), do: []
+
+  defp trim_url(url) do
+    Enum.reduce(@trailing_url_punctuation, url, &String.trim_trailing(&2, &1))
+  end
+
+  defp listener_message(text) when is_binary(text) do
+    message =
+      text
+      |> String.replace(@slack_link, " ")
+      |> String.replace(@url, " ")
+      |> String.replace(~r/\s+/u, " ")
+      |> String.trim()
+      |> String.slice(0, 280)
+
+    if message =~ ~r/[\p{L}\p{N}]/u, do: message
+  end
+
+  defp listener_message(_), do: nil
 end

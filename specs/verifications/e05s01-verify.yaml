@@ -1,0 +1,66 @@
+story_id: e05s01
+verified_at: "2026-08-16T19:15:21Z"
+verifier: verify-work
+risk: P0
+status: ready_for_human_review
+phases:
+  cold_start:
+    passed: true
+    evidence: A fresh MIX_ENV=test Phoenix instance on port 4102 returned the Nozomi Station page.
+  build:
+    passed: true
+    command: mix assets.build
+  tests:
+    passed: true
+    elixir: 71
+    javascript: 4
+    network_requests: 0
+  coverage:
+    passed: true
+    percent: 90.81
+    threshold: 90.0
+  dependencies:
+    npm_audit: 0 vulnerabilities
+    hex_audit: no retired packages
+  integrations:
+    liquidsoap_hls: pass
+    hls_sync: pass
+    programming_priority: pass
+    current_path: "{:ok, tmp/media/c53.m4a}"
+    listener_message: extraction, 280-character persistence, empty-message omission, and LiveView rendering pass
+    volume: stable card-side native range updates local audio in 1% steps and cleans up its event listener
+    reconnect: LiveView patches preserve client state; ended, media error, and fatal hls.js error restore the join action
+    migration_reversal: pass
+    lastfm_real:
+      album: Substance 1987
+      cover_allowlisted: true
+      tags: 5
+      summary: true
+  terminal_verdict:
+    command: mix precommit && mix test --cover
+    exit_code: 0
+    captured_at: "2026-08-16T19:14:04Z"
+    note: Single contiguous run; 71 tests passed and coverage was 90.81%.
+  security:
+    passed: true
+    findings_high: 0
+    report: specs/security/REVIEW.md
+  manual:
+    passed: false
+    completed:
+      - Desktop visual hierarchy and Neo-Tokyo scene reviewed from a user screenshot.
+      - Volume smoothness, stable placement, and revised Shinkansen design accepted by the user.
+      - Join/live labels and redundant status text refined from user feedback.
+      - Missing local tracks traced to a stopped Liquidsoap verification container and restored.
+    pending:
+      - Review the ready PR on desktop and mobile.
+      - Confirm one natural track boundary keeps audio live without refreshing.
+      - Confirm two windows, reduced motion, and real Last.fm rendering.
+  gaps:
+    closed: true
+    items: []
+skips:
+  - item: Final background video
+    reason: The user has not supplied the asset; the accepted provisional CSS scene is local and replaceable.
+  - item: Final visual Last.fm confirmation
+    reason: Real track.getInfo returned album, five tags, summary, and an allowlisted CDN cover; final browser confirmation is assigned to human PR review.
