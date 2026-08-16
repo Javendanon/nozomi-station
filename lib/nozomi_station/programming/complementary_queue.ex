@@ -41,7 +41,7 @@ defmodule NozomiStation.Programming.ComplementaryQueue do
 
   defp prepare_candidate(candidate, origin, resolver, prepare, counts) do
     with {:ok, resolved} <- resolver.(candidate),
-         {:ok, track} <- reserve(resolved, origin),
+         {:ok, track} <- reserve(resolved, candidate, origin),
          {:ok, path} <- prepare_track(track, prepare),
          {:ok, _track} <- persist(track, %{status: "ready", file_path: path}) do
       %{counts | available: counts.available + 1, prepared: counts.prepared + 1}
@@ -52,8 +52,13 @@ defmodule NozomiStation.Programming.ComplementaryQueue do
     end
   end
 
-  defp reserve(resolved, origin) do
-    attrs = resolved |> Map.put(:origin, Atom.to_string(origin)) |> Map.put(:status, "preparing")
+  defp reserve(resolved, candidate, origin) do
+    attrs =
+      resolved
+      |> Map.merge(Map.take(candidate, [:title, :artist]))
+      |> Map.put(:origin, Atom.to_string(origin))
+      |> Map.put(:status, "preparing")
+
     %ComplementaryTrack{} |> ComplementaryTrack.changeset(attrs) |> Repo.insert()
   end
 
