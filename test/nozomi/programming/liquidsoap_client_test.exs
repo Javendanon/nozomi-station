@@ -40,6 +40,17 @@ defmodule NozomiStation.Programming.LiquidsoapClientTest do
     Task.await(server)
   end
 
+  test "finds the request playing outside both pending queues" do
+    command = fn
+      "request.all" -> {:ok, ["3 4 5"]}
+      "requested.queue" -> {:ok, []}
+      "complementary.queue" -> {:ok, ["4 5"]}
+      "request.metadata 3" -> {:ok, [~s(filename="/media/c3.m4a"), ~s(status="ready")]}
+    end
+
+    assert {:ok, "tmp/media/c3.m4a"} = LiquidsoapClient.current_path(command, [])
+  end
+
   test "scheduler worker delegates through the real control boundary" do
     server = server(["\r\nEND\r\nBye!\r\n"])
 
