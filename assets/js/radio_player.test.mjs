@@ -73,11 +73,13 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
   hook.hls = {destroy: () => destroyed++}
   await streamAudio.trigger("playing")
 
-  assert.equal(button.hidden, true)
+  assert.equal(button.hidden, false)
+  assert.equal(button.disabled, true)
+  assert.equal(button.ariaLabel, "Emisión en vivo")
   assert.equal(hook.el.dataset.live, "true")
   await button.trigger("click")
   assert.equal(destroyed, 0)
-  assert.equal(status.textContent, "En vivo")
+  assert.equal(status.textContent, "Señal sincronizada")
   assert.equal(button.listensTo("click"), true)
   hook.destroyed()
   assert.equal(destroyed, 1)

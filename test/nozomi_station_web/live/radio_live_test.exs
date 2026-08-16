@@ -6,7 +6,8 @@ defmodule NozomiStationWeb.RadioLiveTest do
   test "shows an accessible control to join the live broadcast", %{conn: conn} do
     {:ok, view, _html} = live(conn, "/")
 
-    assert has_element?(view, "#join-live", "Subir al tren")
+    assert has_element?(view, "#join-live .join-label", "Subir al tren")
+    assert has_element?(view, "#join-live .live-label", "En vivo")
   end
 
   test "exposes the live HLS stream while it connects", %{conn: conn} do
