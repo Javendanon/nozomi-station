@@ -171,6 +171,16 @@ body {
   text-transform: uppercase;
 }
 
+.listener-message {
+  margin: 1rem 0 0;
+  border-left: 2px solid var(--nozomi-red);
+  padding-left: 0.75rem;
+  color: var(--nozomi-paper);
+  font-size: 0.82rem;
+  font-style: italic;
+  line-height: 1.45;
+}
+
 .track-summary {
   display: -webkit-box;
   margin: 1rem 0 0;

@@ -73,6 +73,13 @@ defmodule NozomiStationWeb.RadioLive do
               >
                 {Map.get(@now_playing, :summary)}
               </p>
+              <blockquote
+                :if={Map.get(@now_playing, :listener_message)}
+                id="listener-message"
+                class="listener-message"
+              >
+                “{Map.get(@now_playing, :listener_message)}”
+              </blockquote>
             </div>
           </article>
         </div>
