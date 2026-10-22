@@ -22,7 +22,7 @@ defmodule NozomiStation.Programming.Mood do
 
   def profile(options \\ []) do
     tracks = Keyword.get(options, :mood, &recent/0).()
-    info = Keyword.get(options, :info, &Lastfm.track_info/3)
+    info = Keyword.get(options, :info, &Lastfm.track_info/2)
 
     %{tracks: tracks, tags: tags(tracks, info)}
   end
