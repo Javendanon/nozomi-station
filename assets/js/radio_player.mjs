@@ -29,6 +29,7 @@ export const RadioPlayer = {
     this.button = this.el.querySelector("#join-live")
     this.connected = false
     this.connecting = false
+    this.joinTimeoutMs ??= 15_000
     this.button.dataset.live = "false"
     this.onPlaying = () => this.markLive()
     this.onDisconnected = () => this.markDisconnected()
@@ -40,6 +41,7 @@ export const RadioPlayer = {
   },
 
   markLive() {
+    clearTimeout(this.joinTimer)
     this.connected = true
     this.connecting = false
     this.button.hidden = false
@@ -49,6 +51,7 @@ export const RadioPlayer = {
   },
 
   markDisconnected() {
+    clearTimeout(this.joinTimer)
     this.hls?.destroy()
     this.hls = null
     this.connected = false
@@ -64,6 +67,9 @@ export const RadioPlayer = {
     this.connecting = true
     this.button.disabled = true
     this.hls?.destroy()
+    // A join that never reaches "playing" (stalled manifest, dead stream) must
+    // give the control back instead of trapping the listener until a reload.
+    this.joinTimer = setTimeout(() => this.markDisconnected(), this.joinTimeoutMs)
 
     try {
       this.hls = await connectToLiveStream(
@@ -79,6 +85,7 @@ export const RadioPlayer = {
   },
 
   destroyed() {
+    clearTimeout(this.joinTimer)
     this.audio.removeEventListener("playing", this.onPlaying)
     this.audio.removeEventListener("ended", this.onDisconnected)
     this.audio.removeEventListener("error", this.onDisconnected)

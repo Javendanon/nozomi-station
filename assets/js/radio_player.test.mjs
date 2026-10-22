@@ -103,6 +103,34 @@ test("keeps live playback across patches and reconnects after the stream ends", 
   assert.equal(streamAudio.listensTo("error"), false)
 })
 
+test("restores the join control when a requested stream never starts playing", async () => {
+  const button = eventTarget({dataset: {}, disabled: false})
+  const streamAudio = eventTarget(audio(true))
+  const elements = {"#join-live": button, "#live-audio": streamAudio}
+  const hook = {
+    ...RadioPlayer,
+    joinTimeoutMs: 0,
+    el: {dataset: {stream: "/hls/live.m3u8"}, querySelector: selector => elements[selector]},
+  }
+
+  hook.mounted()
+  await button.trigger("click")
+  assert.equal(streamAudio.playCount, 1)
+  assert.equal(hook.connecting, true)
+  assert.equal(button.disabled, true)
+
+  await new Promise(resolve => setTimeout(resolve, 0))
+
+  assert.equal(hook.connecting, false)
+  assert.equal(button.disabled, false)
+  assert.equal(button.dataset.live, "false")
+
+  await button.trigger("click")
+  assert.equal(streamAudio.playCount, 2)
+
+  hook.destroyed()
+})
+
 test("moves the Shinkansen volume control in one-percent steps without reconnecting", () => {
   const streamAudio = audio(true)
   const volume = eventTarget({value: "0.65"})
