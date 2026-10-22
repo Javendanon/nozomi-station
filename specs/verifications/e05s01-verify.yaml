@@ -2,7 +2,33 @@ story_id: e05s01
 verified_at: "2026-08-16T19:15:21Z"
 verifier: verify-work
 risk: P0
-status: ready_for_human_review
+status: integrated
+reconciliation:
+  reconciled_at: "2026-10-22T17:22:23Z"
+  pr: https://github.com/Javendanon/nozomi-station/pull/4
+  pr_state: MERGED
+  merge_commit: de95fe690e58413beb8721ad02d923d358c9fc2a
+  merged_at: "2026-10-22T16:47:32Z"
+  main_head: 85955afce6369dcb494988e0902c55c94b9476fd
+  merge_is_ancestor_of_main: true
+  post_merge_ci: https://github.com/Javendanon/nozomi-station/actions/runs/39817023268
+  ci_conclusion: success
+  archive_convention: Follow closure commit 7fc6802 for e03. Mark the epic, story, and tasks done, move the capsule to epics/archive, and update release-plan.yaml.
+  board_card: e39730f9-37c1-4f69-a296-5ce3b13cb4d3
+  board_access: Read-only GET confirmed the existing reconciliation card on the nozomi-station board. No claim, move, or update was made.
+  scope: Tracking only. No e05 implementation changes or new manual verification claims.
+  evidence_note: The phases below retain the original verification results. Integration does not change manual.passed or close its pending items.
+  checks:
+    precommit:
+      command: POSTGRES_PORT=5433 MIX_TEST_PARTITION=_ns01 mix precommit
+      result: 71 tests, 0 failures
+    javascript:
+      command: npm --prefix assets test -- js/radio_player.test.mjs
+      result: 4 tests, 0 failures after npm ci installed the locked dependency
+    metadata:
+      result: 25 YAML files parsed. All capsule links, five completed task verification paths, merge timestamp, current branch, e08 resume point, and open manual checks are consistent.
+    scope:
+      result: No application or test code changed. Automated provider calls remain mocked. No live HLS or Last.fm integration was rerun for this reconciliation.
 phases:
   cold_start:
     passed: true
@@ -53,7 +79,7 @@ phases:
       - Join/live labels and redundant status text refined from user feedback.
       - Missing local tracks traced to a stopped Liquidsoap verification container and restored.
     pending:
-      - Review the ready PR on desktop and mobile.
+      - Record desktop and mobile review of the integrated player.
       - Confirm one natural track boundary keeps audio live without refreshing.
       - Confirm two windows, reduced motion, and real Last.fm rendering.
   gaps:
@@ -63,4 +89,4 @@ skips:
   - item: Final background video
     reason: The user has not supplied the asset; the accepted provisional CSS scene is local and replaceable.
   - item: Final visual Last.fm confirmation
-    reason: Real track.getInfo returned album, five tags, summary, and an allowlisted CDN cover; final browser confirmation is assigned to human PR review.
+    reason: Real track.getInfo returned album, five tags, summary, and an allowlisted CDN cover. Final browser confirmation still lacks recorded completion after merge.

@@ -1,7 +1,7 @@
 project: Nozomi Station
-active_flow: build_epic
-active_epic: e05
-active_story: e05s01
+active_flow: null
+active_epic: null
+active_story: null
 epic_cycle:
   step: 8
   story_bcps: 8
@@ -15,12 +15,34 @@ epic_cycle:
     - 5
     - 6
     - 7
+    - 8
 git:
-  branch: feat/e05-live-player
+  branch: task/ns01-conciliar-el-cierre-de-e05-y-actualizar-
   base: main
 metrics:
   story_start: "2026-08-15T23:52:19Z"
-release: null
+release:
+  pr: 4
+  url: https://github.com/Javendanon/nozomi-station/pull/4
+  merge_commit: de95fe690e58413beb8721ad02d923d358c9fc2a
+  merged_at: "2026-10-22T16:47:32Z"
+  ci_verified: true
+  ci_run: https://github.com/Javendanon/nozomi-station/actions/runs/39817023268
+  registry: not_applicable
 handoff:
-  next_skill: release-branch
-  context: PR #4 is ready for review with green CI; wait for explicit human approval before merge.
+  next_skill: survey-context
+  next_epic: e08
+  next_story: e08s01
+  context: e05s01 is integrated into main and archived. Resume with e08s01 operations and recovery, next by WSJF, without reopening e05 implementation.
+  required_reading:
+    - AGENTS.md
+    - specs/release-plan.yaml
+    - specs/epics/e08-operations/epic.yaml
+    - specs/epics/e08-operations/e08s01-operations.md
+    - specs/epics/e08-operations/e08s01-tasks.yaml
+    - specs/verifications/e05s01-verify.yaml
+  pending:
+    - e05 desktop/mobile, natural track boundary, two-window, reduced-motion, and real Last.fm browser checks lack recorded completion. Merge does not prove these checks passed.
+    - e08s01 remains todo. scripts/verify-radio-recovery.sh and scripts/load-test-radio.sh are pending deliverables, not available checks.
+    - docs/reglas-de-codigo.md is absent from this worktree, Git history, and the current main contents. Obtain it before future code changes.
+  board_card: e39730f9-37c1-4f69-a296-5ce3b13cb4d3

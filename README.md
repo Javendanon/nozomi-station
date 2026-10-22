@@ -4,11 +4,19 @@
 
 Radio comunitaria inspirada en el Shinkansen. Todos los oyentes comparten una emisión HLS continua y sincronizada, servida mediante Phoenix LiveView y producida por Liquidsoap.
 
-## Estado
+## Status
 
-El primer recorrido funcional está listo: Liquidsoap emite audio AAC a 192 kbps, Phoenix publica el manifiesto HLS y el navegador se conecta mediante HLS nativo o `hls.js`.
+Liquidsoap broadcasts continuous AAC audio at 192 kbps. Phoenix serves HLS, and browsers connect through native HLS or `hls.js`.
 
-Slack acepta, valida y prepara solicitudes. La programación complementaria mantiene diez pistas listas desde Last.fm y YouTube; Liquidsoap prioriza solicitudes en límites de canción y conserva el tono de 440 Hz como último respaldo.
+Slack accepts, validates, and prepares requests. Complementary programming keeps ten tracks ready from Last.fm and YouTube. Liquidsoap prioritizes requests at track boundaries and retains a 440 Hz fallback tone.
+
+### e05 integrated
+
+[PR #4](https://github.com/Javendanon/nozomi-station/pull/4) merged into `main` on October 22, 2026, at 16:47:32 UTC ([`de95fe6`](https://github.com/Javendanon/nozomi-station/commit/de95fe690e58413beb8721ad02d923d358c9fc2a)). [Post-merge CI passed](https://github.com/Javendanon/nozomi-station/actions/runs/39817023268).
+
+The five completed tasks deliver synchronized current-track metadata, optional Last.fm details, the provisional Neo-Tokyo scene, Slack listener messages, and local volume control. The [e05 capsule](specs/epics/archive/e05-live-player/epic.yaml) is archived, like e01–e03.
+
+Integration does not prove completion of the remaining manual checks. Desktop/mobile review, a natural track boundary, two windows, reduced motion, and real Last.fm browser rendering still lack recorded completion. See [verification evidence](specs/verifications/e05s01-verify.yaml).
 
 ## Arquitectura
 
@@ -109,8 +117,10 @@ scripts/                            verificaciones ejecutables
 specs/                              alcance, epics, ADR y evidencias
 ```
 
-## Próximos recorridos
+## Resume point
 
-1. Transiciones e interludios ferroviarios.
-2. Reproductor público, chat y votación comunitaria.
-3. Operación, recuperación y despliegue en VPS.
+Resume with [e08s01 — operations and recovery](specs/epics/e08-operations/e08s01-operations.md), next by WSJF in the [release plan](specs/release-plan.yaml). It remains `todo`. Do not reimplement e05.
+
+The e08 recovery and load scripts (`scripts/verify-radio-recovery.sh` and `scripts/load-test-radio.sh`) do not exist yet. They are pending deliverables, not executable verification evidence. The same rule applies to future test/script files marked for creation.
+
+After e08, the planned order is e07 community voting, e06 public chat, then e04 railway transitions.

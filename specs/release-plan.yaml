@@ -23,7 +23,7 @@ epics:
     bcps: 8
   - id: e05
     title: Experiencia del reproductor
-    capsule_dir: epics/e05-live-player
+    capsule_dir: epics/archive/e05-live-player
     wsjf: 3.0
     bcps: 8
   - id: e08
