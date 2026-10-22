@@ -1,0 +1,65 @@
+{
+  "story_id": "e05s01",
+  "generated_at": "2026-10-22T17:39:08.715Z",
+  "url": "http://127.0.0.1:4103/",
+  "browser": "Chrome/155.0.8059.85",
+  "viewports": {
+    "desktop": "1440x900",
+    "mobile": "390x844"
+  },
+  "evidence": {
+    "desktop": "specs/verifications/evidence/e05s01-player-desktop.png",
+    "mobile": "specs/verifications/evidence/e05s01-player-mobile.png"
+  },
+  "checks": [
+    {
+      "id": "desktop_card",
+      "description": "Desktop card, join control, and volume control render.",
+      "status": "pass",
+      "detail": "title=Manual Train A artist=Verification A overflow=0px"
+    },
+    {
+      "id": "two_windows",
+      "description": "Two windows show the same current track.",
+      "status": "pass",
+      "detail": "first=Manual Train A/Verification A second=Manual Train A/Verification A"
+    },
+    {
+      "id": "audio_live",
+      "description": "Joining starts audio in both windows.",
+      "status": "pass",
+      "detail": "t=0.018s buffered=4.04s rs=4 t=0.007s buffered=4.04s rs=4"
+    },
+    {
+      "id": "natural_boundary",
+      "description": "A natural track boundary keeps audio live without reloading.",
+      "status": "pass",
+      "detail": "title=Manual Train B/Manual Train B audio=0.018s→23.423s (advanced) buffered=4.04s→25.774s paused=false/false reloads=1/1"
+    },
+    {
+      "id": "two_windows_after_boundary",
+      "description": "Both windows show the same card after the boundary.",
+      "status": "pass",
+      "detail": "first=Manual Train B/Verification B second=Manual Train B/Verification B"
+    },
+    {
+      "id": "mobile_card",
+      "description": "Mobile viewport renders the player without overflow or overlapping controls.",
+      "status": "pass",
+      "detail": "width=390 title=Manual Train B overflow=0px card-bottom=580.734375 volume-top=592.734375 join=true"
+    },
+    {
+      "id": "reduced_motion",
+      "description": "Reduced motion stops the scene and the wave.",
+      "status": "pass",
+      "detail": "rails=rails→none wave=signal→none join-transition=0s"
+    },
+    {
+      "id": "lastfm_render",
+      "description": "Real Last.fm album, tags, summary and CDN cover render.",
+      "status": "skip",
+      "detail": "LASTFM_API_KEY is not set; the card degraded to title and artist as designed."
+    }
+  ],
+  "verdict": "PASS"
+}

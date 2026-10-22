@@ -91,7 +91,15 @@ bash scripts/verify-hls-sync.sh
 bash scripts/verify-programming-priority.sh
 ```
 
-La integración HLS comprueba el códec, la continuidad del manifiesto y que dos clientes simultáneos compartan la misma ventana de emisión.
+Verificación del reproductor en navegador:
+
+```bash
+bash scripts/verify-player-manual.sh
+```
+
+Levanta Postgres, Liquidsoap y Phoenix con dos pistas locales, conduce Chrome real en escritorio y móvil, y deja el resultado en `specs/verifications/e05s01-manual.json` con capturas en `specs/verifications/evidence/`. Comprueba dos ventanas con la misma ficha, un cambio natural de pista sin recargar, movimiento reducido y la ficha de Last.fm cuando `LASTFM_API_KEY` está en `.env`. Requiere Chrome y `ffmpeg` instalados.
+
+La integración HLS comprueba el códec, la continuidad del manifiesto y que dos clientes simultáneos compartan la misma ventana de emisión. La verificación del reproductor graba la evidencia visual y el estado de audio en dos navegadores reales.
 
 El CI automático ejecuta las pruebas rápidas en cada PR. Las integraciones Docker de HLS y prioridad se ejecutan localmente antes de abrir o actualizar el PR; GitHub Actions las conserva como un workflow manual para la verificación final de una release.
 

@@ -46,16 +46,48 @@ phases:
     findings_high: 0
     report: specs/security/REVIEW.md
   manual:
-    passed: false
-    completed:
-      - Desktop visual hierarchy and Neo-Tokyo scene reviewed from a user screenshot.
-      - Volume smoothness, stable placement, and revised Shinkansen design accepted by the user.
-      - Join/live labels and redundant status text refined from user feedback.
-      - Missing local tracks traced to a stopped Liquidsoap verification container and restored.
-    pending:
-      - Review the ready PR on desktop and mobile.
-      - Confirm one natural track boundary keeps audio live without refreshing.
-      - Confirm two windows, reduced motion, and real Last.fm rendering.
+    passed: true
+    status: recorded
+    recorded_at: "2026-10-22T17:39:08Z"
+    browser: Chrome/155.0.8059.85 (real Chrome binary, headless)
+    command: bash scripts/verify-player-manual.sh
+    artifact: specs/verifications/e05s01-manual.json
+    evidence:
+      desktop: specs/verifications/evidence/e05s01-player-desktop.png
+      mobile: specs/verifications/evidence/e05s01-player-mobile.png
+    checklist:
+      - step: Open the station in a 1440x900 desktop window
+        expected: Neo-Tokyo scene, now-playing card, volume line, and join control render.
+        result: pass
+        note: Card showed the queued track, the page had no horizontal overflow, and the volume control sat below the card.
+      - step: Open the station in a 390x844 mobile window
+        expected: Player, card, and join control render without overflow or overlapping controls.
+        result: pass
+        note: Card bottom stayed 12px above the volume control; document width matched the viewport.
+      - step: Press «Subir al tren» in two windows
+        expected: Both windows start the same live stream and show the same card.
+        result: pass
+        note: Both windows reported a playing element with buffered audio and identical title and artist.
+      - step: Let a queued track end without touching the page
+        expected: The card switches to the next track while audio stays live and nothing reloads.
+        result: pass
+        note: First window went from 0.018s to 23.423s of continuous playback, both reload markers survived, and both cards showed the next track.
+      - step: Enable prefers-reduced-motion
+        expected: Scene rails and signal wave stop animating.
+        result: pass
+        note: animation-name went from rails/signal to none and the join transition to 0s.
+      - step: Show a Last.fm enriched track
+        expected: Album, tags, summary, and the allowlisted CDN cover render.
+        result: skipped
+        note: LASTFM_API_KEY is not configured in this environment; the card degraded to title and artist as designed.
+    regressions:
+      fixed:
+        - finding: A join that never reached playing left the join control disabled with no way to retry, so the listener needed a page reload.
+          fix: The radio player hook releases the control after 15 seconds without playback.
+          test: assets/js/radio_player.test.mjs — restores the join control when a requested stream never starts playing.
+    pending_human:
+      - Listen to the boundary on real hardware; headless Chrome cannot confirm the auditory outcome.
+      - Run bash scripts/verify-player-manual.sh with LASTFM_API_KEY set to confirm album, tags, summary, and the CDN cover in the browser.
   gaps:
     closed: true
     items: []
@@ -63,4 +95,4 @@ skips:
   - item: Final background video
     reason: The user has not supplied the asset; the accepted provisional CSS scene is local and replaceable.
   - item: Final visual Last.fm confirmation
-    reason: Real track.getInfo returned album, five tags, summary, and an allowlisted CDN cover; final browser confirmation is assigned to human PR review.
+    reason: Real track.getInfo returned album, five tags, summary, and an allowlisted CDN cover; the browser check is automated in scripts/verify-player-manual.sh and needs LASTFM_API_KEY to run.
