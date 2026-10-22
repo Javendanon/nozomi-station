@@ -1,115 +1,71 @@
 #!/usr/bin/env bash
-# Records the manual player checklist in a real Chrome: desktop and mobile
-# rendering, two consistent windows, a natural track boundary without a
-# reload, reduced motion, and Last.fm enrichment when LASTFM_API_KEY is set.
-# Writes specs/verifications/e05s01-manual.json plus screenshots in
-# specs/verifications/evidence/.
+# Browser evidence only; human listening and real-provider evidence are required
+# before manual closure. Real Last.fm access is explicit, never part of tests.
 set -euo pipefail
-
 cd "$(dirname "$0")/.."
 
-port=4103
-postgres_port=5434
+run_id="player-manual-$$"
+port="${PLAYER_PORT:-4103}"
 server_pid=""
-postgres_was_running=$(docker compose ps --status running --services | grep -qx postgres && echo yes || true)
+export PLAYER_HLS_DIR="$PWD/priv/static/hls/$run_id"
+export PLAYER_MEDIA_DIR="$PWD/tmp/$run_id/media"
+export PLAYER_READY_FILE="$PWD/tmp/$run_id/ready"
+export LIQUIDSOAP_UID="$(id -u)"
+export LIQUIDSOAP_GID="$(id -g)"
+export PLAYER_FIRST_TITLE="${PLAYER_FIRST_TITLE:-Blue Monday}"
+export PLAYER_FIRST_ARTIST="${PLAYER_FIRST_ARTIST:-New Order}"
+export PLAYER_SECOND_TITLE="${PLAYER_SECOND_TITLE:-Bizarre Love Triangle}"
+export PLAYER_SECOND_ARTIST="${PLAYER_SECOND_ARTIST:-New Order}"
+export PLAYER_REAL_LASTFM="${PLAYER_REAL_LASTFM:-0}"
 
+if test "$PLAYER_REAL_LASTFM" = 1; then
+  : "${LASTFM_API_KEY:?Set LASTFM_API_KEY for the explicitly enabled real-provider check}"
+fi
+
+compose=(docker compose --project-directory "$PWD" -f scripts/compose.player.yaml -p "$run_id")
 cleanup() {
-  test -z "$server_pid" || kill "$server_pid" >/dev/null 2>&1 || true
-  docker compose rm -sf liquidsoap >/dev/null 2>&1 || true
-  test "$postgres_was_running" = yes || docker compose rm -sf postgres >/dev/null 2>&1 || true
+  if test -n "$server_pid"; then
+    kill "$server_pid" >/dev/null 2>&1 || true
+    wait "$server_pid" 2>/dev/null || true
+  fi
+  "${compose[@]}" down --volumes >/dev/null 2>&1 || true
+  rm -rf "$PLAYER_HLS_DIR"
 }
 trap cleanup EXIT
 
-if test -f .env; then
-  set -a
-  # shellcheck disable=SC1091
-  . ./.env
-  set +a
-fi
+mkdir -p "$PLAYER_MEDIA_DIR" "$PLAYER_HLS_DIR" specs/verifications/evidence
+ffmpeg -v error -y -f lavfi -i "sine=frequency=440:duration=60" -c:a aac -b:a 96k "$PLAYER_MEDIA_DIR/first.m4a"
+ffmpeg -v error -y -f lavfi -i "sine=frequency=523:duration=60" -c:a aac -b:a 96k "$PLAYER_MEDIA_DIR/second.m4a"
 
-export POSTGRES_PORT="$postgres_port"
-export LIQUIDSOAP_UID="$(id -u)"
-export LIQUIDSOAP_GID="$(id -g)"
+"${compose[@]}" up -d --wait postgres liquidsoap
+export POSTGRES_HOST=127.0.0.1
+export POSTGRES_PORT="$("${compose[@]}" port postgres 5432 | awk -F: '{print $NF}')"
+export LIQUIDSOAP_HOST=127.0.0.1
+export LIQUIDSOAP_PORT="$("${compose[@]}" port liquidsoap 1234 | awk -F: '{print $NF}')"
 
-mkdir -p tmp tmp/media specs/verifications/evidence
-rm -rf priv/static/hls
-mkdir -p priv/static/hls
-
-# Two local tracks; a natural boundary happens without any user interaction.
-ffmpeg -v error -y -f lavfi -i "sine=frequency=440:duration=25" -c:a aac -b:a 96k tmp/media/manual-train-a.m4a
-ffmpeg -v error -y -f lavfi -i "sine=frequency=523:duration=25" -c:a aac -b:a 96k tmp/media/manual-train-b.m4a
-
-docker compose rm -sf liquidsoap >/dev/null 2>&1 || true
-docker compose up -d --wait postgres liquidsoap
-
-MIX_ENV=dev mix ecto.create >/dev/null 2>&1 || true
-MIX_ENV=dev mix ecto.migrate >/dev/null
-MIX_ENV=dev mix assets.build >/dev/null
-
-cat >tmp/seed-player-manual.exs <<'SEED'
-import Ecto.Query
-
-alias NozomiStation.Repo
-alias NozomiStation.Requests.Request
-
-tracks = [
-  {"tmp/media/manual-train-a.m4a", "Manual Train A", "Verification A"},
-  {"tmp/media/manual-train-b.m4a", "Manual Train B", "Verification B"}
-]
-
-for {path, title, artist} <- tracks do
-  Repo.delete_all(from(request in Request, where: request.file_path == ^path))
-
-  %Request{}
-  |> Request.changeset(%{
-    youtube_id: "manual-#{title}",
-    title: title,
-    artist: artist,
-    duration_seconds: 25,
-    slack_user: "U_MANUAL",
-    slack_channel: "C_MANUAL",
-    thread_ts: "manual",
-    listener_message: "Manual player verification",
-    status: "queued",
-    file_path: path
-  })
-  |> Repo.insert!()
-end
-SEED
-
-MIX_ENV=dev mix run tmp/seed-player-manual.exs
-
-PORT="$port" PHX_SERVER=true MIX_ENV=dev mix phx.server >tmp/player-manual-phoenix.log 2>&1 &
+MIX_ENV=dev mix assets.build
+# No normal dev server or seed invocation: workers are disabled before app start.
+PORT="$port" MIX_ENV=dev mix run --no-start --no-halt scripts/player-manual-server.exs >"tmp/$run_id/phoenix.log" 2>&1 &
 server_pid=$!
 
-for _ in {1..60}; do
-  curl -fsS "http://127.0.0.1:$port/" >/dev/null 2>&1 && break
+for _ in {1..90}; do
+  if test -f "$PLAYER_READY_FILE" && test -f "$PLAYER_HLS_DIR/live.m3u8"; then
+    break
+  fi
+  if ! kill -0 "$server_pid" 2>/dev/null; then
+    tail -40 "tmp/$run_id/phoenix.log"
+    exit 1
+  fi
   sleep 1
 done
 
-if ! curl -fsS "http://127.0.0.1:$port/" >/dev/null 2>&1; then
-  tail -40 tmp/player-manual-phoenix.log
-  echo "Phoenix did not answer on port $port" >&2
-  exit 1
-fi
-
-for _ in {1..30}; do
-  test -f priv/static/hls/live.m3u8 && break
-  sleep 1
-done
-test -f priv/static/hls/live.m3u8
-
-cat >tmp/queue-player-manual.exs <<'QUEUE'
-alias NozomiStation.Programming.LiquidsoapClient
-
-for path <- ["tmp/media/manual-train-a.m4a", "tmp/media/manual-train-b.m4a"] do
-  :ok = LiquidsoapClient.push(:requested, path)
-end
-QUEUE
-
-MIX_ENV=dev mix run tmp/queue-player-manual.exs
+test -f "$PLAYER_READY_FILE"
+test -f "$PLAYER_HLS_DIR/live.m3u8"
 
 node scripts/verify-player-browser.mjs \
   --url "http://127.0.0.1:$port/" \
+  --stream-url "/hls/$run_id/live.m3u8" \
+  --first-title "$PLAYER_FIRST_TITLE" \
+  --second-title "$PLAYER_SECOND_TITLE" \
   --out specs/verifications/e05s01-manual.json \
   --evidence specs/verifications/evidence

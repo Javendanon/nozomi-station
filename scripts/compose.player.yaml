@@ -1,0 +1,26 @@
+# A disposable stack: no development services, named volumes or HLS output.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:0:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+  liquidsoap:
+    image: savonet/liquidsoap:v2.4.5
+    user: "${LIQUIDSOAP_UID}:${LIQUIDSOAP_GID}"
+    init: true
+    command: /etc/liquidsoap/radio.liq
+    ports:
+      - "127.0.0.1:0:1234"
+    volumes:
+      - ./config/liquidsoap:/etc/liquidsoap:ro
+      - ${PLAYER_HLS_DIR}:/hls
+      - ${PLAYER_MEDIA_DIR}:/media:ro

@@ -2,7 +2,7 @@ story_id: e05s01
 verified_at: "2026-08-16T19:15:21Z"
 verifier: verify-work
 risk: P0
-status: ready_for_human_review
+status: manual_verification_incomplete
 phases:
   cold_start:
     passed: true
@@ -13,7 +13,7 @@ phases:
   tests:
     passed: true
     elixir: 71
-    javascript: 4
+    javascript: 10
     network_requests: 0
   coverage:
     passed: true
@@ -46,53 +46,70 @@ phases:
     findings_high: 0
     report: specs/security/REVIEW.md
   manual:
-    passed: true
-    status: recorded
-    recorded_at: "2026-10-22T17:39:08Z"
-    browser: Chrome/155.0.8059.85 (real Chrome binary, headless)
+    passed: false
+    status: incomplete
+    recorded_at: "2026-10-22T18:16:31.392Z"
+    browser: Chrome/155.0.8059.85 (headless, muted, mobile viewport emulation)
     command: bash scripts/verify-player-manual.sh
+    exit_code: 2
     artifact: specs/verifications/e05s01-manual.json
+    scope: Supporting browser evidence, not human auditory confirmation or a physical mobile-device test.
+    isolation: Disposable Compose project, tmpfs PostgreSQL, player_manual database, private Liquidsoap ports and HLS subdirectory. Oban queues and plugins disabled before app start.
     evidence:
       desktop: specs/verifications/evidence/e05s01-player-desktop.png
       mobile: specs/verifications/evidence/e05s01-player-mobile.png
     checklist:
       - step: Open the station in a 1440x900 desktop window
-        expected: Neo-Tokyo scene, now-playing card, volume line, and join control render.
         result: pass
-        note: Card showed the queued track, the page had no horizontal overflow, and the volume control sat below the card.
-      - step: Open the station in a 390x844 mobile window
-        expected: Player, card, and join control render without overflow or overlapping controls.
+        note: Scene, card, join and volume controls render without horizontal overflow or overlapping controls. Screenshot inspected.
+      - step: Open the station in a 390x844 mobile viewport
         result: pass
-        note: Card bottom stayed 12px above the volume control; document width matched the viewport.
-      - step: Press «Subir al tren» in two windows
-        expected: Both windows start the same live stream and show the same card.
+        note: Screenshot inspected. No horizontal overflow. Card bottom was 590.25px and volume top was 602.25px.
+      - step: Join the stream in two windows
         result: pass
-        note: Both windows reported a playing element with buffered audio and identical title and artist.
-      - step: Let a queued track end without touching the page
-        expected: The card switches to the next track while audio stays live and nothing reloads.
-        result: pass
-        note: First window went from 0.018s to 23.423s of continuous playback, both reload markers survived, and both cards showed the next track.
+        note: Both media elements emitted playing and buffered audio. Both cards matched before and after the metadata transition.
+      - step: Observe playback after a natural track boundary
+        result: inconclusive
+        note: Both cards changed from Blue Monday to Bizarre Love Triangle. No reloads occurred, but both clocks stayed at 0.018s throughout 15.123 seconds after the transition. Buffering and an unpaused element do not prove playback.
       - step: Enable prefers-reduced-motion
-        expected: Scene rails and signal wave stop animating.
         result: pass
-        note: animation-name went from rails/signal to none and the join transition to 0s.
-      - step: Show a Last.fm enriched track
-        expected: Album, tags, summary, and the allowlisted CDN cover render.
-        result: skipped
-        note: LASTFM_API_KEY is not configured in this environment; the card degraded to title and artist as designed.
+        note: Rail and wave animation names changed to none. Join transition duration became 0s.
+      - step: Render real Last.fm enrichment
+        result: pending
+        note: No LASTFM_API_KEY was available. No real-provider request was attempted. Historical API field evidence does not prove browser rendering.
+      - step: Listen across the natural boundary
+        result: pending
+        note: No human auditory evidence is available. Headless muted playback cannot satisfy this check.
     regressions:
       fixed:
-        - finding: A join that never reached playing left the join control disabled with no way to retry, so the listener needed a page reload.
-          fix: The radio player hook releases the control after 15 seconds without playback.
-          test: assets/js/radio_player.test.mjs — restores the join control when a requested stream never starts playing.
+        - finding: Timed-out native playback could reject after retry and cancel the new attempt's timeout.
+          fix: Abort abandoned attempts, reset native playback and ignore stale promise results and hls.js callbacks.
+          test: assets/js/radio_player.test.mjs
+        - finding: The recorder accepted suspended clocks, mandatory skips and unloaded Last.fm covers as successful verification.
+          fix: Require sustained post-boundary clock advancement, all mandatory results, an album and a loaded allowlisted image.
+          test: assets/js/verify_player_browser.test.mjs
+      reproducible:
+        - finding: Headless Chrome playback clocks stopped while both elements remained live and unpaused.
+          reproduce: Run bash scripts/verify-player-manual.sh on this host with Chrome/155.0.8059.85.
+          evidence: The JSON natural_boundary check retains all 16 paired post-boundary samples.
+          classification: Environment or playback issue not isolated. Do not infer uninterrupted audio or dismiss this as a proven browser-only limitation.
     pending_human:
-      - Listen to the boundary on real hardware; headless Chrome cannot confirm the auditory outcome.
-      - Run bash scripts/verify-player-manual.sh with LASTFM_API_KEY set to confirm album, tags, summary, and the CDN cover in the browser.
+      - Run the headed check with PLAYER_HEADED=1. Record browser, date, device, advancing clocks and audible continuity across the boundary.
+      - Enable PLAYER_REAL_LASTFM=1 with LASTFM_API_KEY. Confirm album, tags, summary and a successfully loaded cover for the seeded New Order tracks.
+  rework_regression:
+    recorded_at: "2026-10-22T18:14:28Z"
+    liveview: 4 tests, 0 failures
+    precommit: 71 tests, 0 failures
+    node: 10 tests, 0 failures
+    coverage: 90.81 percent
+    external_network_requests: 0
+    note: Automated tests used a separate disposable PostgreSQL instance. Browser runs used isolated local services without real Last.fm access.
   gaps:
-    closed: true
-    items: []
+    closed: false
+    items:
+      - Sustained playback-clock advancement after the natural boundary in both windows.
+      - Human auditory confirmation across the boundary with browser, date and device.
+      - Real Last.fm browser rendering with a loaded cover.
 skips:
   - item: Final background video
     reason: The user has not supplied the asset; the accepted provisional CSS scene is local and replaceable.
-  - item: Final visual Last.fm confirmation
-    reason: Real track.getInfo returned album, five tags, summary, and an allowlisted CDN cover; the browser check is automated in scripts/verify-player-manual.sh and needs LASTFM_API_KEY to run.

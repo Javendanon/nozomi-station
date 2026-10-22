@@ -1,17 +1,51 @@
 #!/usr/bin/env node
-// Records the pending manual player checks in real Chrome windows: desktop and
+// Collects supporting browser evidence, not human listening, in real Chrome: desktop and
 // mobile rendering, two consistent windows, a natural track boundary without a
 // reload, reduced motion, and the Last.fm card. No dependencies: Node's global
 // fetch and WebSocket plus the locally installed Chrome.
 //
-// Each window is its own Chrome process because Chrome suspends media in a
-// hidden tab, which would fake a stalled player on the second window.
+// Separate processes avoid hidden-tab throttling. Suspended playback clocks
+// still produce INCOMPLETE, never a playback pass.
 //
 // Usage: node scripts/verify-player-browser.mjs [--url URL] [--out FILE] [--evidence DIR]
 
 import {spawn} from "node:child_process"
 import {mkdirSync, rmSync, writeFileSync} from "node:fs"
-import {dirname, join} from "node:path"
+import {dirname, join, resolve} from "node:path"
+import {fileURLToPath} from "node:url"
+
+const requiredChecks = [
+  "desktop_card", "mobile_card", "two_windows", "audio_live", "natural_boundary",
+  "two_windows_after_boundary", "reduced_motion", "lastfm_render", "auditory_boundary",
+]
+
+export const completionVerdict = checks => {
+  if (checks.some(check => check.status === "fail")) return "FAIL"
+  return requiredChecks.every(id => checks.some(check => check.id === id && check.status === "pass"))
+    ? "PASS" : "INCOMPLETE"
+}
+
+export const lastfmRendered = state => {
+  let cover
+  try { cover = new URL(state.cover) } catch { return false }
+  return Boolean(state.album?.trim() && state.tags?.length && state.summary?.trim() &&
+    cover.protocol === "https:" && cover.hostname === "lastfm-img.freetls.fastly.net" &&
+    state.coverComplete && state.coverWidth > 0 && state.coverHeight > 0)
+}
+
+export const boundaryStatus = (samples, elapsedSeconds, reloads) => {
+  if (reloads.some(count => count !== 0) || samples.some(pair => pair.some(state =>
+    state.marker !== "kept" || state.live !== "true" || state.paused !== false))) return "fail"
+  if (elapsedSeconds < 12 || samples.length < 2) return "inconclusive"
+  const advancing = samples.slice(1).every((pair, sampleIndex) => pair.every((state, windowIndex) =>
+    state.currentTime > samples[sampleIndex][windowIndex].currentTime))
+  const enoughPlayback = samples.at(-1).every((state, index) =>
+    state.currentTime - samples[0][index].currentTime >= elapsedSeconds * 0.75)
+  return advancing && enoughPlayback ? "pass" : "inconclusive"
+}
+
+const matchingCards = (first, second) => ["title", "artist", "album", "cover", "tags", "summary"]
+  .every(key => JSON.stringify(first[key]) === JSON.stringify(second[key]))
 
 const args = process.argv.slice(2)
 const arg = (name, fallback) => {
@@ -26,7 +60,9 @@ const basePort = Number(arg("debug-port", "9333"))
 const firstTitle = arg("first-title", "Manual Train A")
 const secondTitle = arg("second-title", "Manual Train B")
 const boundaryTimeout = Number(arg("boundary-timeout", "90000"))
-const hasLastfmKey = Boolean(process.env.LASTFM_API_KEY)
+const realLastfm = process.env.PLAYER_REAL_LASTFM === "1"
+const headed = process.env.PLAYER_HEADED === "1"
+const streamUrl = arg("stream-url", null)
 
 const chromeBinary =
   process.env.CHROME_BIN ||
@@ -76,7 +112,7 @@ class Session {
       this.pending.set(id, {resolve, reject})
       setTimeout(() => {
         if (this.pending.delete(id)) reject(new Error(`${method} timed out`))
-      }, 30_000)
+      }, 30_000).unref()
     })
   }
 
@@ -147,6 +183,9 @@ const attach = async (port) => {
     "the page to load",
   )
   await session.eval("window.__verifyMarker = 'kept'")
+  if (streamUrl) {
+    await session.eval(`document.querySelector('#radio-player').dataset.stream = ${JSON.stringify(streamUrl)}`)
+  }
 
   return {version, session}
 }
@@ -157,12 +196,11 @@ const startWindow = async (port, userDataDir) => {
   const chrome = spawn(
     chromeBinary,
     [
-      "--headless=new",
+      ...(headed ? [] : ["--headless=new", "--mute-audio"]),
       "--disable-gpu",
       "--no-first-run",
       "--no-default-browser-check",
       "--autoplay-policy=no-user-gesture-required",
-      "--mute-audio",
       "--window-size=1440,900",
       `--user-data-dir=${userDataDir}`,
       `--remote-debugging-port=${port}`,
@@ -188,6 +226,9 @@ const card = `(() => {
     artist: text("#now-playing-artist"),
     album: text("#now-playing-album"),
     cover: document.querySelector("#now-playing-cover")?.getAttribute("src") ?? null,
+    coverComplete: document.querySelector("#now-playing-cover")?.complete ?? false,
+    coverWidth: document.querySelector("#now-playing-cover")?.naturalWidth ?? 0,
+    coverHeight: document.querySelector("#now-playing-cover")?.naturalHeight ?? 0,
     tags: [...document.querySelectorAll("#now-playing-tags li")].map((tag) => tag.textContent.trim()),
     summary: text("#now-playing-summary"),
     live: document.querySelector("#join-live")?.dataset.live ?? null,
@@ -202,6 +243,7 @@ const card = `(() => {
     volumeTop: document.querySelector("#volume-controller")?.getBoundingClientRect().top ?? null,
     joinVisible: Boolean(document.querySelector("#join-live")?.offsetParent),
     cardVisible: Boolean(document.querySelector("#now-playing")?.offsetParent),
+    volumeVisible: Boolean(document.querySelector("#volume-controller")?.offsetParent),
   }
 })()`
 
@@ -220,21 +262,24 @@ const animationState = `(() => {
 const checks = []
 const record = (id, description, status, detail) => {
   checks.push({id, description, status, detail})
-  const label = {pass: "PASS", skip: "SKIP", fail: "FAIL"}[status]
-  console.log(`${label} ${id}: ${detail}`)
+  const label = {pass: "PASS", skip: "SKIP", fail: "FAIL", inconclusive: "INCONCLUSIVE"}[status]
+  console.log(`${label} ${id}: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`)
 }
 
 const main = async () => {
   mkdirSync(evidenceDir, {recursive: true})
   mkdirSync(dirname(outFile), {recursive: true})
 
-  const first = await startWindow(basePort, join("tmp", `chrome-player-${basePort}-${process.pid}`))
-  const second = await startWindow(basePort + 1, join("tmp", `chrome-player-${basePort + 1}-${process.pid}`))
-  const windows = [first.session, second.session]
-  const states = () => Promise.all(windows.map((window) => window.eval(card)))
-  let lastJoinStates = []
+  const startedWindows = []
+  let desktopShot
+  let mobileShot
 
   try {
+    startedWindows.push(await startWindow(basePort, join("tmp", `chrome-player-${basePort}-${process.pid}`)))
+    startedWindows.push(await startWindow(basePort + 1, join("tmp", `chrome-player-${basePort + 1}-${process.pid}`)))
+    const [first, second] = startedWindows
+    const windows = startedWindows.map(window => window.session)
+    const states = () => Promise.all(windows.map(window => window.eval(card)))
     await waitFor(
       async () => (await states()).every((state) => state.title === firstTitle),
       30_000,
@@ -246,7 +291,9 @@ const main = async () => {
     record(
       "desktop_card",
       "Desktop card, join control, and volume control render.",
-      initialFirst.cardVisible && initialFirst.joinVisible && initialFirst.title === firstTitle
+      initialFirst.cardVisible && initialFirst.joinVisible && initialFirst.volumeVisible &&
+        initialFirst.overflow <= 0 && initialFirst.cardBottom <= initialFirst.volumeTop &&
+        initialFirst.title === firstTitle
         ? "pass"
         : "fail",
       `title=${initialFirst.title} artist=${initialFirst.artist} overflow=${initialFirst.overflow}px`,
@@ -255,8 +302,7 @@ const main = async () => {
     record(
       "two_windows",
       "Two windows show the same current track.",
-      initialFirst.title === initialSecond.title &&
-        initialFirst.artist === initialSecond.artist &&
+      matchingCards(initialFirst, initialSecond) &&
         initialFirst.title === firstTitle
         ? "pass"
         : "fail",
@@ -270,7 +316,6 @@ const main = async () => {
     const joined = await waitFor(
       async () => {
         const current = await states()
-        lastJoinStates = current.map(({live, paused, currentTime}) => ({live, paused, currentTime}))
         return current.every(
           (state) =>
             state.live === "true" &&
@@ -294,7 +339,7 @@ const main = async () => {
         .join(" "),
     )
 
-    const beforeBoundary = joined
+    const loadsBefore = windows.map(window => window.loads)
     const samples = []
     let boundary = null
 
@@ -318,36 +363,37 @@ const main = async () => {
     }
 
     if (boundary) {
-      const stillPlaying = samples.every((states) => states.every((state) => state.paused === false))
-      const clockGrew = boundary.every(
-        (state, index) => state.currentTime > beforeBoundary[index].currentTime,
-      )
-      const bufferedGrew = boundary.every(
-        (state, index) => state.bufferedEnd > beforeBoundary[index].bufferedEnd,
-      )
-      const keptMarker = boundary.every((state) => state.marker === "kept")
-      // Headless Chrome may suspend the audio clock, so the live edge is proven
-      // by the growing buffer plus the still-unpaused element.
-      const clock = clockGrew ? "advanced" : "suspended in headless Chrome"
-
+      // Observe beyond metadata arrival and the six-segment HLS buffer window.
+      const postBoundary = [boundary]
+      const observedAt = Date.now()
+      for (let sample = 0; sample < 15; sample++) {
+        await sleep(1_000)
+        postBoundary.push(await states())
+      }
+      const elapsedSeconds = (Date.now() - observedAt) / 1_000
+      const reloads = windows.map((window, index) => window.loads - loadsBefore[index])
+      const status = boundaryStatus(postBoundary, elapsedSeconds, reloads)
+      const uninterrupted = samples.every(pair => pair.every(state =>
+        state.live === "true" && state.paused === false && state.marker === "kept"))
       record(
         "natural_boundary",
-        "A natural track boundary keeps audio live without reloading.",
-        stillPlaying && bufferedGrew && keptMarker ? "pass" : "fail",
-        `title=${boundary.map((state) => state.title).join("/")} audio=${beforeBoundary[0].currentTime}s→${boundary[0].currentTime}s (${clock}) buffered=${beforeBoundary[0].bufferedEnd}s→${boundary[0].bufferedEnd}s paused=${boundary.map((state) => state.paused).join("/")} reloads=${windows.map((window) => window.loads).join("/")}`,
+        "Both playback clocks advance after a natural boundary without reloading.",
+        uninterrupted ? status : "fail",
+        {elapsedSeconds, reloads, postBoundary},
       )
+      boundary = postBoundary.at(-1)
 
       record(
         "two_windows_after_boundary",
         "Both windows show the same card after the boundary.",
-        boundary[0].title === boundary[1].title && boundary[0].artist === boundary[1].artist
+        matchingCards(boundary[0], boundary[1]) && boundary.every(state => state.title === secondTitle)
           ? "pass"
           : "fail",
         `first=${boundary[0].title}/${boundary[0].artist} second=${boundary[1].title}/${boundary[1].artist}`,
       )
     }
 
-    const desktopShot = join(evidenceDir, "e05s01-player-desktop.png")
+    desktopShot = join(evidenceDir, "e05s01-player-desktop.png")
     await first.session.screenshot(desktopShot)
 
     await second.session.send("Emulation.setDeviceMetricsOverride", {
@@ -358,7 +404,7 @@ const main = async () => {
     })
     await sleep(1_000)
     const mobileState = await second.session.eval(card)
-    const mobileShot = join(evidenceDir, "e05s01-player-mobile.png")
+    mobileShot = join(evidenceDir, "e05s01-player-mobile.png")
     await second.session.screenshot(mobileShot)
 
     record(
@@ -391,34 +437,44 @@ const main = async () => {
       `rails=${motion.rails}→${reduced.rails} wave=${motion.wave}→${reduced.wave} join-transition=${reduced.joinTransition}`,
     )
 
+    if (realLastfm) {
+      try {
+        await waitFor(async () => lastfmRendered(await first.session.eval(card)), 10_000, "Last.fm cover loading")
+      } catch { /* The failed field assertions below retain the actual card state. */ }
+    }
     const lastfm = await first.session.eval(card)
-    const rendered = Boolean(lastfm.cover) && lastfm.tags.length > 0 && Boolean(lastfm.summary)
 
-    if (rendered) {
+    if (realLastfm && lastfmRendered(lastfm)) {
       record(
         "lastfm_render",
         "Real Last.fm album, tags, summary and CDN cover render.",
         "pass",
-        `album=${lastfm.album} tags=${lastfm.tags.length} cover=${lastfm.cover} summary=${lastfm.summary?.slice(0, 40)}`,
+        lastfm,
       )
-    } else if (hasLastfmKey) {
+    } else if (realLastfm) {
       record(
         "lastfm_render",
         "Real Last.fm album, tags, summary and CDN cover render.",
         "fail",
-        `album=${lastfm.album} tags=${lastfm.tags.length} cover=${lastfm.cover}`,
+        lastfm,
       )
     } else {
       record(
         "lastfm_render",
         "Real Last.fm album, tags, summary and CDN cover render.",
         "skip",
-        "LASTFM_API_KEY is not set; the card degraded to title and artist as designed.",
+        "Real-provider access was not enabled; rerun with PLAYER_REAL_LASTFM=1 and LASTFM_API_KEY.",
       )
     }
-
-    const failed = checks.filter((check) => check.status === "fail")
-
+    // Capture the final state after the provider image-load assertion.
+    await first.session.screenshot(desktopShot)
+    await second.session.screenshot(mobileShot)
+  } catch (error) {
+    record("browser_run", "Browser evidence collection completes.", "fail", error.message)
+  } finally {
+    record("auditory_boundary", "A human hears uninterrupted audio across the boundary.", "skip",
+      "Record a human listening result separately with browser, date and device. Use PLAYER_HEADED=1 for audible windows.")
+    const verdict = completionVerdict(checks)
     writeFileSync(
       outFile,
       `${JSON.stringify(
@@ -426,27 +482,31 @@ const main = async () => {
           story_id: "e05s01",
           generated_at: new Date().toISOString(),
           url: pageUrl,
-          browser: first.version,
+          browser: startedWindows[0]?.version ?? "unavailable",
+          mode: `${headed ? "headed audible" : "headless muted"} Chrome; mobile viewport emulation, not a physical device`,
+          real_lastfm_enabled: realLastfm,
           viewports: {desktop: "1440x900", mobile: "390x844"},
           evidence: {desktop: desktopShot, mobile: mobileShot},
           checks,
-          verdict: failed.length === 0 ? "PASS" : "FAIL",
+          verdict,
         },
         null,
         2,
       )}\n`,
     )
 
-    console.log(`\n${failed.length === 0 ? "PASS" : "FAIL"} → ${outFile}`)
-    process.exitCode = failed.length === 0 ? 0 : 1
-  } finally {
-    for (const window of windows) window.close()
-    first.chrome.kill()
-    second.chrome.kill()
+    console.log(`\n${verdict} → ${outFile}`)
+    process.exitCode = verdict === "PASS" ? 0 : verdict === "FAIL" ? 1 : 2
+    for (const window of startedWindows) {
+      window.session.close()
+      window.chrome.kill()
+    }
   }
 }
 
-main().catch((error) => {
-  console.error(error)
-  process.exit(1)
-})
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error)
+    process.exitCode = 1
+  })
+}

@@ -16,11 +16,18 @@ epic_cycle:
     - 6
     - 7
 git:
-  branch: feat/e05-live-player
+  branch: task/ns02-completar-la-verificaci-n-manual-pendien
   base: main
 metrics:
   story_start: "2026-08-15T23:52:19Z"
 release: null
 handoff:
-  next_skill: release-branch
-  context: PR #4 is ready for review with green CI; wait for explicit human approval before merge.
+  next_skill: verify-work
+  last_step_completed: NS02 review rework with 71 Elixir tests, 10 Node tests and isolated browser evidence.
+  context: "PR #4 is merged. NS02 must remain incomplete until real Last.fm rendering and human listening are recorded. Headless playback clocks were suspended after the natural boundary."
+  required_reading:
+    - specs/verifications/e05s01-verify.yaml
+    - specs/verifications/e05s01-manual.json
+  open_decisions:
+    - Obtain LASTFM_API_KEY for the explicit real-provider browser check.
+    - Record a headed browser run with advancing clocks and human auditory confirmation.

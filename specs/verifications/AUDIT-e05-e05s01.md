@@ -1,6 +1,23 @@
 # Audit — e05 / e05s01
 
-## Verdict
+## NS02 review rework — 2026-10-22
+
+**Code regression checks pass. Manual verification remains incomplete.**
+
+- ✓ Security: disposable PostgreSQL and Liquidsoap services preserve development state. Oban queues and plugins are disabled before startup. No secrets or dependencies were added.
+- ✓ Correctness: abandoned joins reset native playback. Stale promise results and hls.js callbacks cannot disconnect a retry.
+- ✓ Evidence integrity: missing, skipped and inconclusive mandatory checks cannot produce a completion verdict. Loaded-image and sustained-clock assertions have offline regression tests.
+- ✓ Tests: 71 Elixir tests, 10 Node tests, 4 focused LiveView tests, and 90.81% coverage. `mix precommit`, asset build, script formatting and shell syntax checks pass.
+- ✓ Scope and clarity: CI now includes the recorder tests. The existing single-file CDP recorder remains intact rather than introducing a browser framework.
+- ✗ Closure: both headless clocks stalled after the boundary. Real Last.fm rendering and human auditory evidence remain pending.
+
+Review findings 2–6 have code fixes. Finding 1 has a corrected incomplete verdict, but its outstanding human checks remain open.
+See `e05s01-verify.yaml` and `e05s01-manual.json` for the dated results and reproduction steps.
+
+No independent reviewer ran in this session. `CONVENTIONS.md`, `docs/reglas-de-codigo.md`, and repository skill-validation scripts are absent.
+The audit below is historical evidence from the original implementation, not a new manual-closure verdict.
+
+## Original implementation verdict
 
 **PASS** — ready for human review. No correctness, security, performance, or clarity blockers found.
 
