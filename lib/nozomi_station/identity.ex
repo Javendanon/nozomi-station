@@ -1,29 +1,37 @@
 defmodule NozomiStation.Identity do
   @moduledoc """
-  Browser-local listener identity shared by chat and voting, without accounts.
+  Accountless listener identity shared by chat and voting.
 
-  Key votes and rate limits by `id`, never by the regenerable display `alias`.
-  Local IDs are not authentication: clearing storage or using another browser
-  can create a new identity.
+  The server owns `id`: `NozomiStationWeb.Plugs.ListenerSession` keeps it in the
+  Phoenix session, so votes and rate limits keyed by `id` survive alias
+  regeneration, storage clearing, and extra browser tabs. The browser only
+  restores the display `alias`, which is regenerable and never an identifier.
+
+  Listener IDs are still not authentication: a new browser session can create a
+  new identity, and any `id` a client sends is ignored.
   """
 
   alias NozomiStation.Identity.Alias, as: RailwayAlias
 
-  def restore(%{"id" => id} = data) when is_binary(id) and byte_size(id) == 36 do
-    case Ecto.UUID.cast(id) do
-      {:ok, id} ->
-        name = Map.get(data, "alias")
-        %{id: id, alias: if(RailwayAlias.valid?(name), do: name, else: RailwayAlias.generate())}
-
-      :error ->
-        new()
+  def restore(data, id) when is_binary(id) do
+    with {:ok, id} <- Ecto.UUID.cast(id) do
+      %{id: id, alias: restored_alias(alias_from(data))}
+    else
+      :error -> new()
     end
   end
 
-  def restore(_data), do: new()
+  def restore(_data, _id), do: new()
 
   def regenerate(%{id: _id, alias: name} = identity) do
     %{identity | alias: RailwayAlias.generate(name)}
+  end
+
+  defp alias_from(data) when is_map(data), do: Map.get(data, "alias")
+  defp alias_from(_data), do: nil
+
+  defp restored_alias(name) do
+    if RailwayAlias.valid?(name), do: name, else: RailwayAlias.generate()
   end
 
   defp new, do: %{id: Ecto.UUID.generate(), alias: RailwayAlias.generate()}

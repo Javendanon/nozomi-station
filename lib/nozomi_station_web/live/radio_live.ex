@@ -5,7 +5,7 @@ defmodule NozomiStationWeb.RadioLive do
   alias NozomiStation.Programming.NowPlaying
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     now_playing =
       if connected?(socket) do
         :ok = NowPlaying.subscribe()
@@ -16,6 +16,7 @@ defmodule NozomiStationWeb.RadioLive do
      assign(socket,
        stream_url: ~p"/hls/live.m3u8",
        now_playing: now_playing,
+       listener_id: session["listener_id"],
        identity: nil,
        identity_persistent?: true
      )}
@@ -23,7 +24,7 @@ defmodule NozomiStationWeb.RadioLive do
 
   @impl true
   def handle_event("restore_identity", data, socket) do
-    identity = socket.assigns.identity || Identity.restore(data)
+    identity = socket.assigns.identity || Identity.restore(data, socket.assigns.listener_id)
     {:noreply, put_identity(socket, identity)}
   end
 

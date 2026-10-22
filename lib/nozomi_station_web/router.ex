@@ -8,6 +8,7 @@ defmodule NozomiStationWeb.Router do
     plug :put_root_layout, html: {NozomiStationWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug NozomiStationWeb.Plugs.ListenerSession
   end
 
   pipeline :api do

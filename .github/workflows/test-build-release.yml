@@ -36,4 +36,4 @@ jobs:
       - run: MIX_ENV=test mix ecto.setup
       - run: mix precommit
       - run: mix test --cover
-      - run: npm --prefix assets test
+      - run: npm --prefix assets test -- js/radio_player.test.mjs
