@@ -10,7 +10,7 @@ defmodule NozomiStation.Programming.RefillWorker do
 
   def run(options \\ []) do
     count = Keyword.get(options, :count, &ComplementaryQueue.available_count/0)
-    mood = Keyword.get(options, :mood, &Mood.recent/0)
+    profile = Keyword.get(options, :profile, &Mood.profile/0)
     source = Keyword.get(options, :source, &Lastfm.candidates/2)
     fill = Keyword.get(options, :fill, &ComplementaryQueue.fill/2)
     missing = max(@target - count.(), 0)
@@ -18,10 +18,10 @@ defmodule NozomiStation.Programming.RefillWorker do
     if missing == 0 do
       {:ok, %{available: @target, prepared: 0}}
     else
-      recent = mood.()
-      origin = if recent == [], do: :seed, else: :mood
+      signals = profile.()
+      origin = if signals.tracks == [], do: :seed, else: :mood
 
-      with {:ok, candidates} <- source.(recent, missing * 3) do
+      with {:ok, candidates} <- source.(signals, missing * 3) do
         fill.(candidates, origin)
       end
     end

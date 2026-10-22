@@ -7,28 +7,42 @@ defmodule NozomiStation.Programming.Lastfm do
 
   def candidates(mood, limit, request \\ &Req.request/1)
 
-  def candidates([], limit, request) do
-    tracks =
-      Enum.flat_map(@seeds, fn tag ->
-        fetch(request, "tag.gettoptracks", tag: tag, limit: limit)
-      end)
-
-    {:ok, unique(tracks, limit)}
+  def candidates(mood, limit, request) when is_list(mood) do
+    candidates(%{tracks: mood, tags: []}, limit, request)
   end
 
-  def candidates(mood, limit, request) do
-    tracks =
-      mood
-      |> Enum.reduce_while([], fn track, found ->
-        if length(found) >= limit do
-          {:halt, found}
-        else
-          params = [artist: track.artist, track: track.title, limit: limit]
-          {:cont, found ++ fetch(request, "track.getsimilar", params)}
-        end
-      end)
+  def candidates(%{tracks: []}, limit, request) do
+    {:ok, unique(tag_tracks(@seeds, limit, request), limit)}
+  end
 
-    {:ok, unique(tracks, limit)}
+  def candidates(%{tracks: tracks, tags: tags}, limit, request) do
+    found = similar_tracks(tracks, limit, request)
+    found = if length(found) < limit, do: found ++ tag_tracks(tags, limit, request), else: found
+
+    {:ok, unique(found, limit)}
+  end
+
+  defp similar_tracks(tracks, limit, request) do
+    tracks
+    |> Enum.reduce_while([], fn track, found ->
+      if length(found) >= limit do
+        {:halt, found}
+      else
+        params = [artist: track.artist, track: track.title, limit: limit]
+        {:cont, found ++ fetch(request, "track.getsimilar", params)}
+      end
+    end)
+  end
+
+  defp tag_tracks(tags, limit, request) do
+    tags
+    |> Enum.reduce_while([], fn tag, found ->
+      if length(found) >= limit do
+        {:halt, found}
+      else
+        {:cont, found ++ fetch(request, "tag.gettoptracks", tag: tag, limit: limit)}
+      end
+    end)
   end
 
   def track_info(artist, title, request \\ &Req.request/1) do
