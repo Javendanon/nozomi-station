@@ -24,6 +24,12 @@ defmodule NozomiStationWeb.Router do
     live "/", RadioLive
   end
 
+  scope "/", NozomiStationWeb do
+    pipe_through :api
+
+    get "/health", HealthController, :show
+  end
+
   scope "/slack", NozomiStationWeb do
     pipe_through [:api, :slack]
 
