@@ -12,7 +12,16 @@ defmodule NozomiStation.IdentityTest do
   end
 
   test "creates a valid identity for missing or malformed browser data" do
-    for data <- [nil, [], "invalid", %{}, %{"id" => 42}, %{"id" => "not-a-uuid"}] do
+    for data <- [
+          nil,
+          [],
+          "invalid",
+          %{},
+          %{"id" => 42},
+          %{"id" => "not-a-uuid"},
+          %{"id" => String.duplicate("x", 36)},
+          %{"id" => <<0::128>>}
+        ] do
       identity = Identity.restore(data)
       assert {:ok, identity.id} == Ecto.UUID.cast(identity.id)
       assert RailwayAlias.valid?(identity.alias)

@@ -10,7 +10,7 @@ tasks:
   - id: 2
     description: Guardar, regenerar y mostrar alias ferroviarios.
     verify: mix test test/nozomi/identity/alias_test.exs
-    status: todo
+    status: passing
   - id: 3
     description: Aplicar límites de longitud, frecuencia y repetición.
     verify: mix test test/nozomi/chat/rate_limit_test.exs

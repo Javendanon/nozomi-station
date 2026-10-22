@@ -39,6 +39,9 @@ defmodule NozomiStationWeb.IdentityLiveTest do
     assert has_element?(view, "#listener-alias", @identity.alias)
     assert has_element?(view, "#regenerate-alias:not([disabled])")
 
+    render_hook(view, "identity_storage", %{available: "true"})
+    assert has_element?(view, "#identity-storage-warning")
+
     render_hook(view, "identity_storage", %{available: true})
     refute has_element?(view, "#identity-storage-warning")
   end

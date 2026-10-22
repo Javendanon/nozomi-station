@@ -80,7 +80,7 @@ Pruebas rápidas:
 ```bash
 mix precommit
 mix test --cover
-npm --prefix assets test -- js/radio_player.test.mjs
+npm --prefix assets test
 ```
 
 Integración HLS:
