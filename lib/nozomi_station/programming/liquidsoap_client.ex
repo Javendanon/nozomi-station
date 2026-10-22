@@ -2,6 +2,25 @@ defmodule NozomiStation.Programming.LiquidsoapClient do
   @queues [:requested, :complementary]
   @timeout 1_000
 
+  def deliver(queue, id, path), do: deliver(queue, id, path, &command/1, [])
+
+  def deliver(queue, id, path, command, options)
+      when queue in @queues and is_integer(id) and id > 0 do
+    key = "#{queue}-#{id}"
+
+    with {:ok, liquidsoap_path} <- to_liquidsoap_path(path, options),
+         {:ok, [receipt]} <- command.("radio.enqueue #{key} #{queue} #{liquidsoap_path}"),
+         {:ok, %{"key" => ^key, "state" => state, "position" => position}} <-
+           Jason.decode(receipt),
+         true <- state in ["queued", "playing", "played", "failed"],
+         true <- is_number(position) and position >= 0 do
+      {:ok, if(state == "playing", do: "queued", else: state)}
+    else
+      {:error, reason} when is_atom(reason) -> {:error, reason}
+      _ -> {:error, :invalid_control_response}
+    end
+  end
+
   def push(queue, path), do: push(queue, path, &command/1, [])
 
   def push(queue, path, command, options) when queue in @queues do
@@ -14,96 +33,33 @@ defmodule NozomiStation.Programming.LiquidsoapClient do
     end
   end
 
-  def active_paths, do: active_paths(&command/1, [])
-
-  def active_paths(command, options) do
-    with {:ok, lines} <- command.("request.all") do
-      lines
-      |> Enum.flat_map(&String.split/1)
-      |> Enum.reduce_while({:ok, []}, fn id, {:ok, paths} ->
-        case active_path(id, command, options) do
-          {:ok, path} -> {:cont, {:ok, [path | paths]}}
-          :finished -> {:cont, {:ok, paths}}
-          error -> {:halt, error}
-        end
-      end)
-      |> then(fn
-        {:ok, paths} -> {:ok, Enum.reverse(paths)}
-        error -> error
-      end)
-    end
-  end
-
   def current_path, do: current_path(&command/1, [])
 
   def current_path(command, options) do
-    with {:ok, all} <- request_ids(command, "request.all"),
-         {:ok, requested} <- request_ids(command, "requested.queue"),
-         {:ok, complementary} <- request_ids(command, "complementary.queue") do
-      case List.first(all -- (requested ++ complementary)) do
-        nil -> {:ok, nil}
-        id -> current_request_path(id, command, options)
-      end
-    end
-  end
-
-  defp request_ids(command, value) do
-    with {:ok, lines} <- command.(value) do
-      ids = Enum.flat_map(lines, &String.split/1)
-
-      if Enum.all?(ids, &(&1 =~ ~r/^\d+$/)),
-        do: {:ok, ids},
-        else: {:error, :invalid_control_response}
-    end
-  end
-
-  defp current_request_path(id, command, options) do
-    case active_path(id, command, options) do
-      {:ok, path} -> {:ok, path}
-      :finished -> {:ok, nil}
-      error -> error
-    end
-  end
-
-  defp active_path(id, command, options) do
-    with true <- id =~ ~r/^\d+$/,
-         {:ok, metadata} <- command.("request.metadata #{id}"),
-         false <- metadata == ["No such request."],
-         line when is_binary(line) <- Enum.find(metadata, &media_path?/1),
-         [_, path] <- Regex.run(~r/^(?:filename|initial_uri)="([^"]+)"$/, line) do
-      from_liquidsoap_path(path, options)
+    with {:ok, [snapshot]} <- command.("radio.current"),
+         {:ok, %{"key" => key, "path" => path}} when is_binary(key) and is_binary(path) <-
+           Jason.decode(snapshot) do
+      if key == "", do: {:ok, nil}, else: from_liquidsoap_path(path, options)
     else
-      value when value in [true, false, nil] -> :finished
-      {:error, _reason} = error -> error
+      {:error, reason} when is_atom(reason) -> {:error, reason}
       _ -> {:error, :invalid_control_response}
     end
   end
 
-  defp media_path?(line) do
-    String.starts_with?(line, "filename=") or String.starts_with?(line, "initial_uri=")
-  end
-
   defp command(value) do
-    case send_command(value) do
-      {:error, reason} when reason in [:closed, :econnrefused, :timeout] ->
-        Process.sleep(50)
-        send_command(value)
-
-      result ->
-        result
-    end
-  end
-
-  defp send_command(value) do
     host = Application.get_env(:nozomi_station, :liquidsoap_host, "127.0.0.1")
     port = Application.get_env(:nozomi_station, :liquidsoap_port, 1234)
 
     with {:ok, socket} <-
-           :gen_tcp.connect(String.to_charlist(host), port, [:binary, active: false], @timeout),
-         :ok <- :gen_tcp.send(socket, value <> "\nquit\n"),
-         {:ok, response} <- receive_response(socket, "") do
-      :gen_tcp.close(socket)
-      parse_response(response)
+           :gen_tcp.connect(String.to_charlist(host), port, [:binary, active: false], @timeout) do
+      try do
+        with :ok <- :gen_tcp.send(socket, value <> "\nquit\n"),
+             {:ok, response} <- receive_response(socket, "") do
+          parse_response(response)
+        end
+      after
+        :gen_tcp.close(socket)
+      end
     end
   end
 
@@ -141,10 +97,11 @@ defmodule NozomiStation.Programming.LiquidsoapClient do
   end
 
   defp translate(path, source_root, target_root) do
-    relative = Path.relative_to(path, source_root)
+    relative = Path.relative_to(Path.expand(path), Path.expand(source_root))
 
-    if Path.type(relative) != :relative or relative == ".." or
-         String.starts_with?(relative, "../") or relative =~ ~r/\s/ do
+    if Path.type(relative) != :relative or relative in [".", ".."] or
+         String.starts_with?(relative, "../") or
+         not Regex.match?(~r/\A[a-zA-Z0-9_\/.\-]+\z/, relative) do
       {:error, :invalid_media_path}
     else
       {:ok, Path.join(target_root, relative)}

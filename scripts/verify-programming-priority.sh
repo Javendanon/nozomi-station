@@ -14,7 +14,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p tmp/media priv/static/hls
+mkdir -p tmp/media priv/static/hls tmp/radio-recovery
 ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=220:duration=6" "$complementary"
 ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=660:duration=3" "$requested"
 

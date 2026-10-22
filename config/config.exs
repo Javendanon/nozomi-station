@@ -17,8 +17,7 @@ config :nozomi_station, Oban,
   plugins: [
     {Oban.Plugins.Cron,
      crontab: [
-       {"* * * * *", NozomiStation.Programming.RefillWorker},
-       {"* * * * *", NozomiStation.Programming.SchedulerWorker}
+       {"* * * * *", NozomiStation.Programming.RefillWorker}
      ]}
   ]
 

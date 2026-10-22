@@ -19,7 +19,7 @@ assert service.get("user") not in ("0", "root"), "Liquidsoap must not run as roo
 ' <<<"$config"
 
 rm -rf priv/static/hls
-mkdir -p priv/static/hls tmp/media
+mkdir -p priv/static/hls tmp/media tmp/radio-recovery
 export LIQUIDSOAP_UID="$(id -u)"
 export LIQUIDSOAP_GID="$(id -g)"
 docker compose up -d liquidsoap

@@ -1,6 +1,8 @@
 defmodule NozomiStation.Programming.SchedulerTest do
   use NozomiStation.DataCase, async: true
 
+  import ExUnit.CaptureLog
+
   alias NozomiStation.Programming.{
     ComplementaryTrack,
     LiquidsoapClient,
@@ -11,17 +13,31 @@ defmodule NozomiStation.Programming.SchedulerTest do
   alias NozomiStation.Repo
   alias NozomiStation.Requests.Request
 
+  test "reconciles a durable receipt after an ACK without pushing again" do
+    request = insert_request("ready", "/host/media/accepted.m4a")
+
+    assert {:ok, %{requested: 1, complementary: 0}} =
+             Scheduler.run(
+               deliver: fn :requested, id, path ->
+                 assert id == request.id
+                 assert path == request.file_path
+                 {:ok, "queued"}
+               end
+             )
+
+    assert Repo.reload!(request).status == "queued"
+  end
+
   test "dispatches requested tracks before complementary tracks" do
     request = insert_request("ready", "/host/media/request.m4a")
     complementary = insert_complementary("ready", "/host/media/complementary.m4a")
 
-    push = fn queue, path ->
+    deliver = fn queue, _id, path ->
       send(self(), {:push, queue, path})
-      :ok
+      {:ok, "queued"}
     end
 
-    assert {:ok, %{requested: 1, complementary: 1}} =
-             Scheduler.run(active_paths: fn -> {:ok, []} end, push: push)
+    assert {:ok, %{requested: 1, complementary: 1}} = Scheduler.run(deliver: deliver)
 
     assert_receive {:push, :requested, "/host/media/request.m4a"}
     assert_receive {:push, :complementary, "/host/media/complementary.m4a"}
@@ -29,20 +45,157 @@ defmodule NozomiStation.Programming.SchedulerTest do
     assert Repo.reload!(complementary).status == "queued"
   end
 
-  test "reconciles completed tracks and keeps failed dispatches ready" do
+  test "requires durable completion receipts instead of absence from a volatile queue" do
     active = insert_request("queued", "/host/media/active.m4a")
     finished = insert_complementary("queued", "/host/media/finished.m4a")
     waiting = insert_complementary("ready", "/host/media/waiting.m4a", 2)
 
-    assert {:ok, %{requested: 0, complementary: 0}} =
-             Scheduler.run(
-               active_paths: fn -> {:ok, [active.file_path]} end,
-               push: fn :complementary, _path -> {:error, :control_unavailable} end
-             )
+    deliver = fn
+      :requested, _, _ -> {:ok, "queued"}
+      :complementary, id, _ when id == finished.id -> {:ok, "played"}
+      :complementary, _, _ -> {:ok, "queued"}
+    end
 
+    assert {:ok, %{requested: 0, complementary: 1}} = Scheduler.run(deliver: deliver)
     assert Repo.reload!(active).status == "queued"
     assert Repo.reload!(finished).status == "played"
-    assert Repo.reload!(waiting).status == "ready"
+    assert Repo.reload!(waiting).status == "queued"
+  end
+
+  test "reconciles exactly once when Phoenix fails after ACK and before committing" do
+    request = insert_request("ready", "/host/media/ack.m4a")
+    receipts = start_supervised!({Agent, fn -> %{} end})
+
+    deliver = fn queue, id, _path ->
+      Agent.update(receipts, &Map.put_new(&1, {queue, id}, "queued"))
+      {:ok, Agent.get(receipts, &Map.fetch!(&1, {queue, id}))}
+    end
+
+    assert {:error, :injected_after_ack} =
+             Repo.transaction(fn ->
+               assert {:ok, _} = Scheduler.run(deliver: deliver)
+               Repo.rollback(:injected_after_ack)
+             end)
+
+    assert Repo.reload!(request).status == "ready"
+    assert {:ok, %{requested: 1}} = Scheduler.run(deliver: deliver)
+    assert Repo.reload!(request).status == "queued"
+    assert Agent.get(receipts, &map_size/1) == 1
+
+    Agent.update(receipts, &Map.put(&1, {:requested, request.id}, "played"))
+    assert {:ok, %{requested: 0}} = Scheduler.run(deliver: deliver)
+    assert Repo.reload!(request).status == "played"
+    assert {:ok, %{requested: 0}} = Scheduler.run(deliver: deliver)
+  end
+
+  test "lost ACKs and control outages preserve ready and queued requests" do
+    ready = insert_request("ready", "/host/media/ready.m4a")
+    queued = insert_complementary("queued", "/host/media/queued.m4a")
+
+    assert capture_log(fn ->
+             assert {:ok, %{requested: 0, complementary: 0}} =
+                      Scheduler.run(deliver: fn _, _, _ -> {:error, :timeout} end)
+           end) =~ "programming_dispatch_failed"
+
+    assert Repo.reload!(ready).status == "ready"
+    assert Repo.reload!(queued).status == "queued"
+
+    assert {:ok, %{requested: 0, complementary: 0}} =
+             Scheduler.run(deliver: fn _, _, _ -> {:ok, "played"} end)
+
+    assert Repo.reload!(ready).status == "played"
+    assert Repo.reload!(queued).status == "played"
+  end
+
+  test "a permanently failing delivery does not block its siblings" do
+    broken = insert_request("ready", "/host/outside/media.m4a")
+    healthy = insert_request("ready", "/host/media/healthy.m4a")
+
+    assert capture_log(fn ->
+             assert {:ok, %{requested: 1}} =
+                      Scheduler.run(
+                        deliver: fn
+                          :requested, id, _path when id == broken.id ->
+                            {:error, :invalid_media_path}
+
+                          :requested, id, _path when id == healthy.id ->
+                            {:ok, "queued"}
+                        end
+                      )
+           end) =~ "programming_dispatch_failed"
+
+    assert Repo.reload!(broken).status == "ready"
+    assert Repo.reload!(healthy).status == "queued"
+  end
+
+  test "a failed receipt keeps the row retryable until the media is available" do
+    request = insert_request("ready", "/host/media/late.m4a")
+
+    assert {:ok, %{requested: 0}} =
+             Scheduler.run(deliver: fn _, _, _ -> {:ok, "failed"} end)
+
+    assert Repo.reload!(request).status == "ready"
+
+    assert {:ok, %{requested: 1}} =
+             Scheduler.run(deliver: fn _, _, _ -> {:ok, "queued"} end)
+
+    assert Repo.reload!(request).status == "queued"
+  end
+
+  test "a restarted poller reconciles immediately without provider I/O" do
+    test = self()
+
+    options = [
+      name: nil,
+      run: fn ->
+        send(test, :reconciled)
+        {:ok, %{}}
+      end
+    ]
+
+    start_supervised!({Scheduler, options})
+    assert_receive :reconciled
+    stop_supervised!(Scheduler)
+    start_supervised!({Scheduler, options})
+    assert_receive :reconciled
+  end
+
+  test "database disconnects roll back dispatch and remain retryable" do
+    request = insert_request("ready", "/host/media/disconnect.m4a")
+
+    assert {:error, :database_unavailable} =
+             Scheduler.run(deliver: fn _, _, _ -> raise DBConnection.ConnectionError end)
+
+    assert Repo.reload!(request).status == "ready"
+  end
+
+  test "non-availability database errors surface instead of being retried as outages" do
+    insert_request("ready", "/host/media/bad-sql.m4a")
+
+    assert_raise Postgrex.Error, fn ->
+      Scheduler.run(deliver: fn _, _, _ -> raise Postgrex.Error, message: "syntax error" end)
+    end
+  end
+
+  test "the supervised poller keeps retrying after control outages" do
+    test = self()
+
+    pid =
+      start_supervised!(
+        {Scheduler,
+         name: nil,
+         poll: false,
+         run: fn ->
+           send(test, :attempted)
+           {:error, :timeout}
+         end}
+      )
+
+    send(pid, :poll)
+    assert_receive :attempted
+    _ = :sys.get_state(pid)
+    send(pid, :poll)
+    assert_receive :attempted
   end
 
   test "scheduler worker preserves success and retry results" do
@@ -96,27 +249,42 @@ defmodule NozomiStation.Programming.SchedulerTest do
              )
   end
 
-  test "reads active request filenames from Liquidsoap metadata" do
-    command = fn
-      "request.all" -> {:ok, ["4 9"]}
-      "request.metadata 4" -> {:ok, [~s(filename="/media/4.m4a"), ~s(status="ready")]}
-      "request.metadata 9" -> {:ok, [~s(initial_uri="/media/c9.m4a"), ~s(status="idle")]}
-    end
+  test "allows a configured media root with spaces and validates only the relative segment" do
+    assert {:ok, "queued"} =
+             LiquidsoapClient.deliver(
+               :requested,
+               17,
+               "/mnt/audio store/17.m4a",
+               fn "radio.enqueue requested-17 requested /media/17.m4a" ->
+                 {:ok, [~s({"key":"requested-17","state":"queued","position":0})]}
+               end,
+               media_dir: "/mnt/audio store",
+               liquidsoap_media_dir: "/media"
+             )
 
-    assert {:ok, ["/host/media/4.m4a", "/host/media/c9.m4a"]} =
-             LiquidsoapClient.active_paths(command,
-               media_dir: "/host/media",
+    assert {:error, :invalid_media_path} =
+             LiquidsoapClient.deliver(
+               :requested,
+               17,
+               "/mnt/audio store/track one.m4a",
+               fn _ -> flunk("unsafe path reached control socket") end,
+               media_dir: "/mnt/audio store",
                liquidsoap_media_dir: "/media"
              )
   end
 
-  test "ignores requests that finish during control reconciliation" do
-    command = fn
-      "request.all" -> {:ok, ["4"]}
-      "request.metadata 4" -> {:ok, ["No such request."]}
-    end
+  test "does not resurrect a row changed by another writer during delivery" do
+    track = insert_complementary("ready", "/host/media/skipped.m4a")
 
-    assert {:ok, []} = LiquidsoapClient.active_paths(command, [])
+    assert {:ok, %{complementary: 0}} =
+             Scheduler.run(
+               deliver: fn :complementary, _id, _path ->
+                 track |> Ecto.Changeset.change(status: "skipped") |> Repo.update!()
+                 {:ok, "queued"}
+               end
+             )
+
+    assert Repo.reload!(track).status == "skipped"
   end
 
   defp insert_request(status, path) do
