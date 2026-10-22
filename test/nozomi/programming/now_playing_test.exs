@@ -5,6 +5,39 @@ defmodule NozomiStation.Programming.NowPlayingTest do
   alias NozomiStation.Repo
   alias NozomiStation.Requests.Request
 
+  test "serves the base track while enrichment is pending, then publishes its details" do
+    test = self()
+    track = %{title: "Track", artist: "Artist", duration_seconds: 180}
+    topic = "now-playing-test-#{System.unique_integer([:positive])}"
+    Phoenix.PubSub.subscribe(NozomiStation.PubSub, topic)
+
+    pid =
+      start_supervised!(
+        {NowPlaying,
+         name: nil,
+         topic: topic,
+         poll_interval: 60_000,
+         current_path: fn -> {:ok, "tmp/media/track.m4a"} end,
+         lookup: fn _path -> track end,
+         enrich: fn _track ->
+           send(test, {:enrichment_pending, self()})
+
+           receive do
+             :complete -> {:ok, %{year: 1987, related: ["Related Artist"]}}
+           end
+         end}
+      )
+
+    assert_receive {:enrichment_pending, worker}
+    assert_receive {:now_playing, ^track}
+    assert NowPlaying.current(pid) == track
+
+    send(worker, :complete)
+    assert_receive {:now_playing, enriched}
+    assert enriched == Map.merge(track, %{year: 1987, related: ["Related Artist"]})
+    assert NowPlaying.current(pid) == enriched
+  end
+
   test "publishes the active database track enriched once" do
     track =
       %Request{}
