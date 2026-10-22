@@ -74,6 +74,13 @@ defmodule NozomiStationWeb.RadioLive do
                 >
                   {Map.get(@now_playing, :summary)}
                 </p>
+                <p
+                  :if={Map.get(@now_playing, :slack_display_name)}
+                  id="requested-by"
+                  class="requested-by"
+                >
+                  Pedido por {Map.get(@now_playing, :slack_display_name)}
+                </p>
                 <blockquote
                   :if={Map.get(@now_playing, :listener_message)}
                   id="listener-message"

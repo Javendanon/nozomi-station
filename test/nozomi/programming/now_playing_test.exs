@@ -14,6 +14,7 @@ defmodule NozomiStation.Programming.NowPlayingTest do
         artist: "New Order",
         duration_seconds: 451,
         slack_user: "U01",
+        slack_display_name: "Kaede",
         slack_channel: "C01",
         thread_ts: "123.45",
         listener_message: "Para el viaje nocturno",
@@ -40,6 +41,8 @@ defmodule NozomiStation.Programming.NowPlayingTest do
     assert now_playing.artist == "New Order"
     assert now_playing.album == "Substance"
     assert now_playing.listener_message == "Para el viaje nocturno"
+    assert now_playing.slack_display_name == "Kaede"
+    refute Map.has_key?(now_playing, :slack_user)
     assert NowPlaying.current(pid) == now_playing
   end
 

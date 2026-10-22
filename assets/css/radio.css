@@ -187,6 +187,14 @@ body {
   line-height: 1.45;
 }
 
+.requested-by {
+  margin: 1rem 0 0;
+  color: rgb(244 240 232 / 0.58);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .track-summary {
   display: -webkit-box;
   margin: 1rem 0 0;

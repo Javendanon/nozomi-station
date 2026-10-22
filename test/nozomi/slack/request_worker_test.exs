@@ -61,7 +61,19 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
     end
 
     job = %Oban.Job{args: %{"event_id" => "Ev-worker"}}
-    deps = [channel: "C01", resolver: resolver, prepare: prepare, reply: reply]
+
+    display_name = fn user ->
+      send(self(), {:display_name, user})
+      {:ok, "Listener"}
+    end
+
+    deps = [
+      channel: "C01",
+      resolver: resolver,
+      prepare: prepare,
+      reply: reply,
+      display_name: display_name
+    ]
 
     previous_level = Logger.level()
     Logger.configure(level: :info)
@@ -75,10 +87,14 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
 
     requester = %{
       slack_user: "U01",
+      slack_display_name: "Listener",
       slack_channel: "C01",
       thread_ts: "123.45",
       listener_message: "Hola, les comparto estas canciones:"
     }
+
+    assert_received {:display_name, "U01"}
+    refute_received {:display_name, _}
 
     assert_received {:prepared, "one", ^requester}
     assert_received {:prepared, "two", ^requester}
@@ -110,7 +126,8 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
       channel: "C01",
       resolver: fn _url -> {:error, :provider_unavailable} end,
       prepare: fn _, _ -> flunk("transient resolver result reached preparation") end,
-      reply: fn _, _, _ -> flunk("transient resolver result reached Slack") end
+      reply: fn _, _, _ -> flunk("transient resolver result reached Slack") end,
+      display_name: fn _user -> {:error, :slack_unavailable} end
     ]
 
     job = %Oban.Job{args: %{"event_id" => "Ev-transient"}}
@@ -129,7 +146,8 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
       channel: "C01",
       resolver: fn _ -> flunk("ignored event reached resolver") end,
       prepare: fn _, _ -> flunk("ignored event reached preparation") end,
-      reply: fn _, _, _ -> flunk("ignored event reached Slack") end
+      reply: fn _, _, _ -> flunk("ignored event reached Slack") end,
+      display_name: fn _ -> flunk("ignored event reached the Slack lookup") end
     ]
 
     job = %Oban.Job{args: %{"event_id" => "Ev-other-channel"}}
@@ -169,11 +187,82 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
     end
 
     job = %Oban.Job{args: %{"event_id" => "Ev-rejection"}}
-    deps = [channel: "C01", resolver: resolver, prepare: prepare, reply: reply]
+
+    deps = [
+      channel: "C01",
+      resolver: resolver,
+      prepare: prepare,
+      reply: reply,
+      display_name: fn _user -> {:error, :display_name_missing} end
+    ]
 
     assert :ok = RequestWorker.perform(job, deps)
     assert_received {:reply, "C01", "456.78", "Rechazada: la canción no es reproducible"}
     assert_received {:reply, "C01", "456.78", "Aceptada: Ready · posición 1"}
-    assert_received {:requester, %{listener_message: nil}}
+
+    # A failed lookup keeps the request but never promotes the Slack ID to a public name.
+    assert_received {:requester,
+                     %{listener_message: nil, slack_user: "U01", slack_display_name: nil}}
+  end
+
+  test "resolves the visible name through Slack and tolerates a failed lookup" do
+    request = fn options ->
+      send(self(), {:slack_request, options})
+
+      {:ok,
+       %Req.Response{
+         status: 200,
+         body: %{
+           "ok" => true,
+           "user" => %{"id" => "U01", "profile" => %{"display_name" => " Kaede "}}
+         }
+       }}
+    end
+
+    assert {:ok, "Kaede"} = Client.display_name("U01", request)
+    assert_receive {:slack_request, options}
+    assert options[:url] == "https://slack.com/api/users.info"
+    assert options[:method] == :get
+    assert options[:params] == [user: "U01"]
+    assert options[:redirect] == false
+
+    real_name = fn _options ->
+      {:ok,
+       %Req.Response{
+         status: 200,
+         body: %{
+           "ok" => true,
+           "user" => %{
+             "id" => "U01",
+             "profile" => %{"display_name" => "", "real_name" => "Kaede Hoshino"}
+           }
+         }
+       }}
+    end
+
+    assert {:ok, "Kaede Hoshino"} = Client.display_name("U01", real_name)
+
+    anonymous = fn _options ->
+      {:ok,
+       %Req.Response{
+         status: 200,
+         body: %{
+           "ok" => true,
+           "user" => %{"id" => "U01", "profile" => %{"display_name" => " "}}
+         }
+       }}
+    end
+
+    assert {:error, :display_name_missing} = Client.display_name("U01", anonymous)
+
+    assert {:error, :slack_unavailable} =
+             Client.display_name("U01", fn _options ->
+               {:ok, %Req.Response{status: 500, body: %{"ok" => false}}}
+             end)
+
+    assert {:error, :slack_unavailable} =
+             Client.display_name("U01", fn _options -> {:error, :timeout} end)
+
+    assert {:error, :invalid_user} = Client.display_name(nil, request)
   end
 end

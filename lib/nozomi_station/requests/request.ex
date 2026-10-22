@@ -9,6 +9,7 @@ defmodule NozomiStation.Requests.Request do
     field(:artist, :string)
     field(:duration_seconds, :integer)
     field(:slack_user, :string)
+    field(:slack_display_name, :string)
     field(:slack_channel, :string)
     field(:thread_ts, :string)
     field(:listener_message, :string)
@@ -25,6 +26,7 @@ defmodule NozomiStation.Requests.Request do
       :artist,
       :duration_seconds,
       :slack_user,
+      :slack_display_name,
       :slack_channel,
       :thread_ts,
       :listener_message,
