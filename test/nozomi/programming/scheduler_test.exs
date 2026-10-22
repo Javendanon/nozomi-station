@@ -1,6 +1,8 @@
 defmodule NozomiStation.Programming.SchedulerTest do
   use NozomiStation.DataCase, async: true
 
+  import ExUnit.CaptureLog
+
   alias NozomiStation.Programming.{
     ComplementaryTrack,
     LiquidsoapClient,
@@ -90,8 +92,10 @@ defmodule NozomiStation.Programming.SchedulerTest do
     ready = insert_request("ready", "/host/media/ready.m4a")
     queued = insert_complementary("queued", "/host/media/queued.m4a")
 
-    assert {:error, :timeout} =
-             Scheduler.run(deliver: fn _, _, _ -> {:error, :timeout} end)
+    assert capture_log(fn ->
+             assert {:ok, %{requested: 0, complementary: 0}} =
+                      Scheduler.run(deliver: fn _, _, _ -> {:error, :timeout} end)
+           end) =~ "programming_dispatch_failed"
 
     assert Repo.reload!(ready).status == "ready"
     assert Repo.reload!(queued).status == "queued"
@@ -101,6 +105,41 @@ defmodule NozomiStation.Programming.SchedulerTest do
 
     assert Repo.reload!(ready).status == "played"
     assert Repo.reload!(queued).status == "played"
+  end
+
+  test "a permanently failing delivery does not block its siblings" do
+    broken = insert_request("ready", "/host/outside/media.m4a")
+    healthy = insert_request("ready", "/host/media/healthy.m4a")
+
+    assert capture_log(fn ->
+             assert {:ok, %{requested: 1}} =
+                      Scheduler.run(
+                        deliver: fn
+                          :requested, id, _path when id == broken.id ->
+                            {:error, :invalid_media_path}
+
+                          :requested, id, _path when id == healthy.id ->
+                            {:ok, "queued"}
+                        end
+                      )
+           end) =~ "programming_dispatch_failed"
+
+    assert Repo.reload!(broken).status == "ready"
+    assert Repo.reload!(healthy).status == "queued"
+  end
+
+  test "a failed receipt keeps the row retryable until the media is available" do
+    request = insert_request("ready", "/host/media/late.m4a")
+
+    assert {:ok, %{requested: 0}} =
+             Scheduler.run(deliver: fn _, _, _ -> {:ok, "failed"} end)
+
+    assert Repo.reload!(request).status == "ready"
+
+    assert {:ok, %{requested: 1}} =
+             Scheduler.run(deliver: fn _, _, _ -> {:ok, "queued"} end)
+
+    assert Repo.reload!(request).status == "queued"
   end
 
   test "a restarted poller reconciles immediately without provider I/O" do
@@ -128,6 +167,14 @@ defmodule NozomiStation.Programming.SchedulerTest do
              Scheduler.run(deliver: fn _, _, _ -> raise DBConnection.ConnectionError end)
 
     assert Repo.reload!(request).status == "ready"
+  end
+
+  test "non-availability database errors surface instead of being retried as outages" do
+    insert_request("ready", "/host/media/bad-sql.m4a")
+
+    assert_raise Postgrex.Error, fn ->
+      Scheduler.run(deliver: fn _, _, _ -> raise Postgrex.Error, message: "syntax error" end)
+    end
   end
 
   test "the supervised poller keeps retrying after control outages" do
@@ -200,6 +247,44 @@ defmodule NozomiStation.Programming.SchedulerTest do
                media_dir: "/host/media",
                liquidsoap_media_dir: "/media"
              )
+  end
+
+  test "allows a configured media root with spaces and validates only the relative segment" do
+    assert {:ok, "queued"} =
+             LiquidsoapClient.deliver(
+               :requested,
+               17,
+               "/mnt/audio store/17.m4a",
+               fn "radio.enqueue requested-17 requested /media/17.m4a" ->
+                 {:ok, [~s({"key":"requested-17","state":"queued","position":0})]}
+               end,
+               media_dir: "/mnt/audio store",
+               liquidsoap_media_dir: "/media"
+             )
+
+    assert {:error, :invalid_media_path} =
+             LiquidsoapClient.deliver(
+               :requested,
+               17,
+               "/mnt/audio store/track one.m4a",
+               fn _ -> flunk("unsafe path reached control socket") end,
+               media_dir: "/mnt/audio store",
+               liquidsoap_media_dir: "/media"
+             )
+  end
+
+  test "does not resurrect a row changed by another writer during delivery" do
+    track = insert_complementary("ready", "/host/media/skipped.m4a")
+
+    assert {:ok, %{complementary: 0}} =
+             Scheduler.run(
+               deliver: fn :complementary, _id, _path ->
+                 track |> Ecto.Changeset.change(status: "skipped") |> Repo.update!()
+                 {:ok, "queued"}
+               end
+             )
+
+    assert Repo.reload!(track).status == "skipped"
   end
 
   defp insert_request(status, path) do

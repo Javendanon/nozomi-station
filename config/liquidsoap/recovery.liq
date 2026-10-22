@@ -1,6 +1,9 @@
 # Durable receipts belong outside the public HLS directory. Never delete this
 # directory while its database is in use: keys are database row identities.
 recovery_dir = environment.get(default="/recovery", "RADIO_RECOVERY_DIR")
+media_root = environment.get(default="/media", "RADIO_MEDIA_DIR")
+media_prefix =
+  if string.contains(suffix="/", media_root) then media_root else "#{media_root}/" end
 file.mkdir(parents=true, recovery_dir)
 
 requested = request.queue(id="requested", prefetch=1)
@@ -28,19 +31,46 @@ def save_receipt(receipt) =
     data=json.stringify(compact=true, receipt), receipt_path(receipt.key))
 end
 
+def target_queue(kind) =
+  if kind == "requested" then requested else complementary end
+end
+
+def valid_media_path(media_path) =
+  string.contains(prefix=media_prefix, media_path) and
+  r/^[a-zA-Z0-9_\/.\-]+$/.test(media_path) and
+  not r/(^|\/)\.\.(\/|$)/.test(media_path)
+end
+
 # Only the control thread mutates this list. Streaming callbacks update their
 # own receipt file atomically, never the admission list.
 admitted = ref([])
 def admit(receipt, queue) =
-  if not list.mem(receipt.key, admitted()) then
+  if list.mem(receipt.key, admitted()) then
+    true
+  else
     uri = 'annotate:recovery_key="#{receipt.key}",recovery_offset="#{receipt.position}",liq_cue_in="#{receipt.position}":#{receipt.path}'
     item = request.create(uri)
     push = queue.push
     if request.resolve(timeout=1., content_type=queue, item) then
-      push(item)
-      admitted := list.append(admitted(), [receipt.key])
+      begin
+        push(item)
+        admitted := list.append(admitted(), [receipt.key])
+        true
+      end
     else
-      save_receipt({...receipt, state="failed"})
+      # A resolve failure is transient unless the media is definitively absent.
+      # Transient receipts stay retryable: Phoenix keeps the row and the next
+      # poll calls enqueue again. Missing media gets an explicit failed receipt,
+      # which enqueue also re-attempts in case the mount appears later.
+      begin
+        if file.exists(receipt.path) then
+          log("radio_admission_deferred key=#{receipt.key} path=#{receipt.path}")
+        else
+          log("radio_admission_failed key=#{receipt.key} path=#{receipt.path}")
+          save_receipt({...receipt, state="failed"})
+        end
+        false
+      end
     end
   end
 end
@@ -55,8 +85,8 @@ def enqueue(args) =
     media_path = list.nth(parts, 2)
     if not r/^(requested|complementary)-[1-9][0-9]*$/.test(key) or
        not (kind == "requested" or kind == "complementary") or
-       not r/^\/media\/[a-zA-Z0-9_\/.\-]+$/.test(media_path) or
-       r/(^|\/)\.\.(\/|$)/.test(media_path) then
+       not valid_media_path(media_path)
+    then
       "ERROR: invalid delivery"
     else
       if not file.exists(receipt_path(key)) then
@@ -69,10 +99,29 @@ def enqueue(args) =
       if receipt.path != media_path or receipt.queue != kind then
         "ERROR: delivery conflict"
       else
-        if receipt.state == "queued" then
-          admit(receipt, if kind == "requested" then requested else complementary end)
+        if receipt.state == "queued" or receipt.state == "failed" then
+          begin
+            if admit(receipt, target_queue(kind)) then
+              begin
+                if receipt.state == "failed" then
+                  save_receipt({...receipt, state="queued"})
+                end
+                file.contents(receipt_path(key))
+              end
+            elsif read_receipt(key).state == "failed" then
+              file.contents(receipt_path(key))
+            else
+              "ERROR: delivery pending"
+            end
+          end
+        elsif receipt.state == "playing" and resume_pending() then
+          begin
+            ignore(admit(receipt, resumed))
+            file.contents(receipt_path(key))
+          end
+        else
+          file.contents(receipt_path(key))
         end
-        file.contents(receipt_path(key))
       end
     end
   end
@@ -86,14 +135,40 @@ receipts = list.map(read_receipt_file, file.ls(absolute=true, pattern="*.json", 
 receipts = list.sort(fun (a, b) ->
   if a.sequence < b.sequence then -1 elsif a.sequence > b.sequence then 1 else 0 end,
   receipts)
+
+# At most one delivery can be playing. A crash at a track boundary can leave a
+# stale older "playing" receipt: demote it so it re-enters its own queue instead
+# of being stranded when the resumed source drains.
+resume_key = ref("")
 list.iter(fun (receipt) -> begin
   if receipt.state == "playing" then
-    admit(receipt, resumed)
-    resume_pending := read_receipt(receipt.key).state != "failed"
-  elsif receipt.state == "queued" then
-    admit(receipt, if receipt.queue == "requested" then requested else complementary end)
+    if resume_key() == "" then
+      resume_key := receipt.key
+    elsif receipt.sequence > read_receipt(resume_key()).sequence then
+      begin
+        save_receipt({...read_receipt(resume_key()), state="queued"})
+        resume_key := receipt.key
+      end
+    else
+      save_receipt({...receipt, state="queued"})
+    end
   end
 end, receipts)
+
+list.iter(fun (receipt) -> begin
+  current = read_receipt(receipt.key)
+  if current.state == "playing" then
+    ignore(admit(current, resumed))
+  elsif current.state == "queued" then
+    ignore(admit(current, target_queue(current.queue)))
+  end
+  ()
+end, receipts)
+
+resume_pending :=
+  if resume_key() == "" then false
+  else read_receipt(resume_key()).state != "failed"
+  end
 
 current_playback = ref(fun () -> {key="", path="", position=0., offset=0.})
 def current_snapshot(_) =

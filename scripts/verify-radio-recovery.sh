@@ -36,6 +36,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import socket
 import subprocess
 import time
@@ -170,6 +171,7 @@ try:
     assert current()['key'] == '', 'Unresolvable media interrupted fallback'
 
     # Durable completion, not an empty volatile queue, prevents replay on restart.
+    kill_phoenix()
     restart_liquidsoap()
     assert control('request.all') == ''
     assert current()['key'] == ''
@@ -179,8 +181,33 @@ try:
     starts = re.findall(r'radio_track_started key=([^ ]+)', engine_log)
     assert starts == ['complementary-1', 'complementary-1', 'requested-1',
                       'requested-2', 'complementary-2'], starts
+
+    # Media that exists but cannot be decoded is a transient failure: the
+    # receipt must stay retryable instead of becoming a terminal failure.
+    (work / 'media' / 'broken.m4a').write_bytes(b'not audio')
+    pending = control('radio.enqueue requested-998 requested /media/broken.m4a')
+    assert pending.startswith('ERROR:'), pending
+    assert not any(r['key'] == 'requested-998' and r['state'] == 'failed' for r in receipts())
+    shutil.copy(work / 'media' / 'waiting.m4a', work / 'media' / 'broken.m4a')
+    retried = json.loads(control('radio.enqueue requested-998 requested /media/broken.m4a'))
+    assert retried['state'] in ('queued', 'playing'), retried
+
+    # A crash at a track boundary can leave two playing receipts. Only the
+    # newest resumes; the older one is demoted and re-enters its own queue.
+    base = time.time()
+    for key, sequence in (('requested-996', base + 1), ('requested-997', base + 2)):
+        (work / 'journal' / f'{key}.json').write_text(json.dumps({
+            'key': key, 'queue': 'requested', 'path': '/media/waiting.m4a',
+            'state': 'playing', 'position': 1.0, 'sequence': sequence}))
+    restart_liquidsoap()
+    resumed_key = wait_for(lambda: current() if current()['key'] else None)['key']
+    assert resumed_key == 'requested-997', resumed_key
+    demoted = json.loads((work / 'journal' / 'requested-996.json').read_text())
+    assert demoted['state'] == 'queued', demoted
+
     print(f'radio-recovery: OK (Phoenix restart, Liquidsoap SIGKILL, ACK failure, '
-          f'4 distinct deliveries, completion receipts, fallback); logs: {work}', flush=True)
+          f'4 distinct deliveries, completion receipts, fallback, transient resolve, '
+          f'boundary resume); logs: {work}', flush=True)
 finally:
     kill_phoenix()
     logs = subprocess.run(['docker', 'logs', f'{prefix}-liquidsoap'],

@@ -33,37 +33,78 @@ defmodule NozomiStation.Programming.Scheduler do
   def run(options \\ []) do
     deliver = Keyword.get(options, :deliver, &LiquidsoapClient.deliver/3)
 
-    Repo.transaction(fn ->
-      requested = dispatch(Request, :requested, deliver)
-      complementary = dispatch(ComplementaryTrack, :complementary, deliver)
-      %{requested: requested, complementary: complementary}
-    end)
+    requested = dispatch(Request, :requested, deliver)
+    complementary = dispatch(ComplementaryTrack, :complementary, deliver)
+
+    {:ok, %{requested: requested, complementary: complementary}}
   rescue
-    _error in [DBConnection.ConnectionError, Postgrex.Error] -> {:error, :database_unavailable}
+    _error in DBConnection.ConnectionError -> {:error, :database_unavailable}
   end
 
   defp dispatch(schema, queue, deliver) do
+    # Control I/O stays outside the database transactions: one slow or failing
+    # delivery must not hold row locks or block its siblings.
+    schema
+    |> candidates()
+    |> Enum.count(fn item -> dispatch_item(schema, queue, item, deliver) end)
+  end
+
+  defp candidates(schema) do
     Repo.all(
       from(item in schema,
         where: item.status in ["ready", "queued"],
-        order_by: item.id,
-        lock: "FOR UPDATE SKIP LOCKED"
+        order_by: item.id
       )
     )
-    |> Enum.count(fn item ->
-      # The stable key survives rollback, lost ACKs, and either process restarting.
-      case deliver.(queue, item.id, item.file_path) do
-        {:ok, status} when status in ["queued", "played", "failed"] ->
-          if status != item.status do
-            item |> Ecto.Changeset.change(status: status) |> Repo.update!()
-            Logger.info("programming_reconciled queue=#{queue} id=#{item.id} status=#{status}")
-          end
+  end
 
-          item.status == "ready" and status == "queued"
+  defp dispatch_item(schema, queue, item, deliver) do
+    # The stable key survives rollback, lost ACKs, and either process restarting.
+    case deliver.(queue, item.id, item.file_path) do
+      {:ok, status} when status in ["queued", "played"] ->
+        reconcile(schema, queue, item, status)
 
-        {:error, reason} ->
-          Repo.rollback(reason)
-      end
-    end)
+      {:ok, "failed"} ->
+        # A failed receipt is retried on the next poll, so the row keeps its
+        # status instead of being dropped as a terminal database failure.
+        Logger.warning("programming_delivery_unavailable queue=#{queue} id=#{item.id}")
+        false
+
+      {:error, reason} ->
+        Logger.warning(
+          "programming_dispatch_failed queue=#{queue} id=#{item.id} reason=#{inspect(reason)}"
+        )
+
+        false
+    end
+  end
+
+  defp reconcile(schema, queue, item, status) do
+    # A short transaction per row: a bad sibling cannot roll back committed work.
+    {:ok, dispatched} =
+      Repo.transaction(fn ->
+        case Repo.one(
+               from(current in schema,
+                 where: current.id == ^item.id and current.status in ["ready", "queued"],
+                 lock: "FOR UPDATE SKIP LOCKED"
+               )
+             ) do
+          nil ->
+            false
+
+          current ->
+            if current.status != status do
+              current |> Ecto.Changeset.change(status: status) |> Repo.update!()
+
+              Logger.info(
+                "programming_reconciled queue=#{queue} id=#{current.id} status=#{status}"
+              )
+            end
+
+            current.status == "ready" and status == "queued"
+        end
+      end)
+
+    dispatched
   end
 end

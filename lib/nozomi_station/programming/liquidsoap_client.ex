@@ -101,7 +101,7 @@ defmodule NozomiStation.Programming.LiquidsoapClient do
 
     if Path.type(relative) != :relative or relative in [".", ".."] or
          String.starts_with?(relative, "../") or
-         not Regex.match?(~r/\A[a-zA-Z0-9_\/.\-]+\z/, path) do
+         not Regex.match?(~r/\A[a-zA-Z0-9_\/.\-]+\z/, relative) do
       {:error, :invalid_media_path}
     else
       {:ok, Path.join(target_root, relative)}
