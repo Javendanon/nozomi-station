@@ -24,6 +24,21 @@ defmodule NozomiStationWeb.Plugs.ListenerSessionTest do
     refute id == "chosen-by-the-client"
   end
 
+  test "rejects a tampered persistent session cookie", %{conn: conn} do
+    conn = get(conn, "/")
+    id = get_session(conn, "listener_id")
+    cookie = Map.fetch!(conn.resp_cookies, "_nozomi_station_key")
+
+    returning =
+      build_conn()
+      |> put_req_cookie("_nozomi_station_key", cookie.value <> "tampered")
+      |> get("/")
+
+    new_id = get_session(returning, "listener_id")
+    assert {:ok, new_id} == Ecto.UUID.cast(new_id)
+    refute new_id == id
+  end
+
   test "leaves an existing session ID untouched", %{conn: conn} do
     id = Ecto.UUID.generate()
 

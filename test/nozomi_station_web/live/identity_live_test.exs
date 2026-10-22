@@ -16,7 +16,7 @@ defmodule NozomiStationWeb.IdentityLiveTest do
 
     # The server owns the ID: the one in the browser payload is ignored.
     render_hook(view, "restore_identity", %{"id" => @claimant_id, "alias" => @alias})
-    assert_push_event(view, "identity", %{id: id, alias: restored_alias})
+    assert_push_event(view, "identity", %{id: id, alias: restored_alias, restored: true})
     assert {:ok, id} == Ecto.UUID.cast(id)
     refute id == @claimant_id
     assert restored_alias == @alias
@@ -24,7 +24,7 @@ defmodule NozomiStationWeb.IdentityLiveTest do
     assert has_element?(view, "#regenerate-alias:not([disabled])")
 
     view |> element("#regenerate-alias") |> render_click()
-    assert_push_event(view, "identity", %{id: ^id, alias: new_alias})
+    assert_push_event(view, "identity", %{id: ^id, alias: new_alias, restored: false})
     assert new_alias != @alias
     assert has_element?(view, "#listener-alias", new_alias)
 
@@ -74,6 +74,39 @@ defmodule NozomiStationWeb.IdentityLiveTest do
     render_hook(second, "restore_identity", %{})
     assert_push_event(second, "identity", %{id: ^id, alias: name})
     assert NozomiStation.Identity.Alias.valid?(name)
+  end
+
+  test "restores the same listener after a browser restart with preserved local storage", %{
+    conn: conn
+  } do
+    conn = get(conn, "/")
+    {:ok, first, _html} = live(conn, "/")
+    render_hook(first, "restore_identity", %{"alias" => @alias})
+    assert_push_event(first, "identity", %{id: id, alias: @alias})
+    stored = %{"id" => id, "alias" => @alias}
+
+    cookie = Map.fetch!(conn.resp_cookies, "_nozomi_station_key")
+    assert cookie.max_age == 31_536_000
+    assert Enum.any?(get_resp_header(conn, "set-cookie"), &String.contains?(&1, "; HttpOnly"))
+    assert cookie.same_site == "Lax"
+
+    # A restarted browser retains persistent cookies, not session cookies.
+    returning =
+      Enum.reduce(conn.resp_cookies, build_conn(), fn {key, cookie}, browser ->
+        if Map.get(cookie, :max_age, 0) > 0 do
+          put_req_cookie(browser, key, cookie.value)
+        else
+          browser
+        end
+      end)
+
+    {:ok, second, _html} = live(returning, "/")
+    render_hook(second, "restore_identity", stored)
+    assert_push_event(second, "identity", %{id: ^id, alias: @alias})
+
+    second |> element("#regenerate-alias") |> render_click()
+    assert_push_event(second, "identity", %{id: ^id, alias: new_alias})
+    refute new_alias == @alias
   end
 
   test "ignores regeneration before restoration and repairs invalid local data", %{conn: conn} do

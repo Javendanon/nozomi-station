@@ -3,12 +3,13 @@ defmodule NozomiStation.Identity do
   Accountless listener identity shared by chat and voting.
 
   The server owns `id`: `NozomiStationWeb.Plugs.ListenerSession` keeps it in the
-  Phoenix session, so votes and rate limits keyed by `id` survive alias
-  regeneration, storage clearing, and extra browser tabs. The browser only
-  restores the display `alias`, which is regenerable and never an identifier.
+  persistent signed Phoenix session cookie, so votes and rate limits keyed by
+  `id` survive alias regeneration, local storage clearing, and browser restarts.
+  The browser only restores the display `alias`, which is regenerable and never
+  an identifier.
 
-  Listener IDs are still not authentication: a new browser session can create a
-  new identity, and any `id` a client sends is ignored.
+  Listener IDs are still not authentication: clearing or expiring the cookie
+  creates a new identity, and any `id` a client sends is ignored.
   """
 
   alias NozomiStation.Identity.Alias, as: RailwayAlias

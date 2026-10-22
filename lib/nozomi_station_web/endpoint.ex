@@ -8,6 +8,7 @@ defmodule NozomiStationWeb.Endpoint do
     store: :cookie,
     key: "_nozomi_station_key",
     signing_salt: "W4MOrIeR",
+    max_age: 60 * 60 * 24 * 365,
     same_site: "Lax"
   ]
 

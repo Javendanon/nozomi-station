@@ -25,7 +25,7 @@ defmodule NozomiStationWeb.RadioLive do
   @impl true
   def handle_event("restore_identity", data, socket) do
     identity = socket.assigns.identity || Identity.restore(data, socket.assigns.listener_id)
-    {:noreply, put_identity(socket, identity)}
+    {:noreply, put_identity(socket, identity, true)}
   end
 
   def handle_event("regenerate_alias", _params, %{assigns: %{identity: nil}} = socket) do
@@ -43,10 +43,10 @@ defmodule NozomiStationWeb.RadioLive do
 
   def handle_event("identity_storage", _params, socket), do: {:noreply, socket}
 
-  defp put_identity(socket, identity) do
+  defp put_identity(socket, identity, restored? \\ false) do
     socket
     |> assign(:identity, identity)
-    |> push_event("identity", identity)
+    |> push_event("identity", Map.put(identity, :restored, restored?))
   end
 
   @impl true
@@ -111,7 +111,7 @@ defmodule NozomiStationWeb.RadioLive do
                 role="status"
                 class="mt-3 text-xs leading-relaxed text-amber-200"
               >
-                Browser storage is unavailable. Your identity lasts only until this page is closed or reloaded.
+                Browser storage is unavailable. Your alias lasts only until this page is closed or reloaded.
               </p>
             </section>
 

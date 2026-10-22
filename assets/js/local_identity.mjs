@@ -1,5 +1,5 @@
 const storageKey = "nozomi:identity"
-// ponytail: memory fallback lasts for this page; durable identity requires working browser storage.
+// ponytail: memory fallback lasts for this page; durable aliases require working browser storage.
 let identity = null
 
 function readStored() {
@@ -24,7 +24,13 @@ export const LocalIdentity = {
   mounted() {
     identity = newest(identity, readStored())
 
-    this.handleEvent("identity", value => {
+    this.handleEvent("identity", ({restored, ...value}) => {
+      const stored = readStored()
+      // A restoration confirms an earlier snapshot, not a new alias choice.
+      if (restored && JSON.stringify(stored) !== this.restoringRevision) {
+        identity = newest(identity, stored)
+        return
+      }
       identity = {...value, updatedAt: Date.now()}
       let available = true
       try {
@@ -44,6 +50,7 @@ export const LocalIdentity = {
   },
 
   restoreIdentity() {
+    this.restoringRevision = JSON.stringify(readStored())
     this.pushEvent("restore_identity", identity || {})
   },
 }

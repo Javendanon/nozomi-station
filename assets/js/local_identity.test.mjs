@@ -53,8 +53,9 @@ test("persists a new identity and restores it after a full page reload", async t
   first.mounted()
   assert.deepEqual(first.sent, [["restore_identity", {}]])
 
-  first.receive(identity)
+  first.receive({...identity, restored: true})
   assert.deepEqual(saved(localStorage), identity)
+  assert.equal(JSON.parse(localStorage.getItem(key)).restored, undefined)
   assert.deepEqual(first.sent.at(-1), ["identity_storage", {available: true}])
 
   const reload = await freshPage()
@@ -100,11 +101,40 @@ test("keeps the stored alias when another tab rewrote it while this tab was open
   assert.deepEqual(saved(localStorage), regenerated)
 })
 
+test("a delayed restoration cannot overwrite another tab's regenerated alias", async t => {
+  const localStorage = storage()
+  const mount = await browser(t, () => localStorage)
+  const tabA = mount()
+  tabA.mounted()
+  tabA.receive(identity)
+
+  const otherTab = await freshPage()
+  const tabB = otherTab()
+  tabB.mounted()
+  assert.equal(tabB.sent.at(-1)[1].alias, identity.alias)
+
+  const regenerated = {...identity, alias: "Kodama-9-Nagoya-E7-Midori"}
+  tabA.receive(regenerated)
+  const revision = localStorage.getItem(key)
+
+  // Deliver B's old confirmation only after A has saved its new alias.
+  tabB.receive({...identity, restored: true})
+  assert.equal(localStorage.getItem(key), revision)
+  assert.deepEqual(saved(localStorage), regenerated)
+
+  const reload = await freshPage()
+  const returning = reload()
+  returning.mounted()
+  assert.equal(returning.sent.at(-1)[1].alias, regenerated.alias)
+  tabB.reconnected()
+  assert.equal(tabB.sent.at(-1)[1].alias, regenerated.alias)
+})
+
 test("retains identity across hook remounts when access to localStorage is blocked", async t => {
   const mount = await browser(t, () => { throw new Error("Storage is disabled") })
   const first = mount()
   first.mounted()
-  first.receive(identity)
+  first.receive({...identity, restored: true})
   assert.deepEqual(first.sent.at(-1), ["identity_storage", {available: false}])
 
   const second = mount()
@@ -140,7 +170,7 @@ test("recovers from unreadable or malformed stored data without throwing", async
       const hook = mount()
       hook.mounted()
       assert.deepEqual(hook.sent, [["restore_identity", {}]])
-      hook.receive(identity)
+      hook.receive({...identity, restored: true})
       assert.deepEqual(saved(localStorage), identity)
     })
   }
