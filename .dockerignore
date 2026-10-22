@@ -1,0 +1,15 @@
+*
+!mix.exs
+!mix.lock
+!config/
+!config/**
+!lib/
+!lib/**
+!priv/
+!priv/**
+priv/static/assets/
+priv/static/hls/
+priv/static/cache_manifest.json
+!assets/
+!assets/**
+assets/node_modules/

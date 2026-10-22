@@ -24,31 +24,23 @@ config :nozomi_station, NozomiStationWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
 if config_env() == :prod do
-  # The secret key base is used to sign/encrypt cookies and other secrets.
-  # A default value is used in config/dev.exs and config/test.exs but you
-  # want to use a different value for prod and you most likely don't want
-  # to check this value into version control, so we use an environment
-  # variable instead.
-  secret_key_base =
-    System.get_env("SECRET_KEY_BASE") ||
-      raise """
-      environment variable SECRET_KEY_BASE is missing.
-      You can generate one by calling: mix phx.gen.secret
-      """
+  required_env = fn name ->
+    value =
+      case System.get_env(name <> "_FILE") do
+        nil -> System.get_env(name)
+        path -> path |> File.read!() |> String.trim_trailing()
+      end
 
-  host = System.get_env("PHX_HOST") || "example.com"
+    if value in [nil, ""], do: raise("required setting #{name} is missing"), else: value
+  end
 
-  database_url =
-    System.get_env("DATABASE_URL") ||
-      raise "environment variable DATABASE_URL is missing"
+  secret_key_base = required_env.("SECRET_KEY_BASE")
+  host = required_env.("PHX_HOST")
+  database_url = required_env.("DATABASE_URL")
 
   config :nozomi_station, NozomiStation.Repo,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
-
-  required_env = fn name ->
-    System.get_env(name) || raise "environment variable #{name} is missing"
-  end
 
   config :nozomi_station,
     slack_signing_secret: required_env.("SLACK_SIGNING_SECRET"),
@@ -68,11 +60,7 @@ if config_env() == :prod do
   config :nozomi_station, NozomiStationWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://bandit.hexdocs.pm/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0}
+      ip: {0, 0, 0, 0}
     ],
     secret_key_base: secret_key_base
 

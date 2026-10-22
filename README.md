@@ -109,6 +109,13 @@ scripts/                            verificaciones ejecutables
 specs/                              alcance, epics, ADR y evidencias
 ```
 
+## Production deployment
+
+See [the portable deployment runbook](docs/deployment.md) for the standalone
+`compose.production.yaml`, external secrets, TLS, migration ordering, and the
+offline production smoke test. Provider, domain, CDN, and live deployment remain
+pending operator approval.
+
 ## Próximos recorridos
 
 1. Transiciones e interludios ferroviarios.

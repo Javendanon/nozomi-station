@@ -1,0 +1,171 @@
+# Standalone production stack: do not merge with compose.yaml.
+x-release: &release
+  image: ${PHOENIX_IMAGE:-nozomi-station:local}
+  build: .
+  init: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop: [ALL]
+  environment:
+    PHX_HOST: ${PHX_HOST:?Set the public hostname}
+    DATABASE_URL_FILE: /run/secrets/database_url
+    SECRET_KEY_BASE_FILE: /run/secrets/secret_key_base
+    SLACK_SIGNING_SECRET_FILE: /run/secrets/slack_signing_secret
+    SLACK_BOT_TOKEN_FILE: /run/secrets/slack_bot_token
+    SLACK_CHANNEL_ID: ${SLACK_CHANNEL_ID:?Set the Slack channel ID}
+    SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:?Set the Spotify client ID}
+    SPOTIFY_CLIENT_SECRET_FILE: /run/secrets/spotify_client_secret
+    LASTFM_API_KEY_FILE: /run/secrets/lastfm_api_key
+    MEDIA_DIR: /media
+    LIQUIDSOAP_HOST: liquidsoap
+    LIQUIDSOAP_MEDIA_DIR: /media
+  secrets:
+    - database_url
+    - secret_key_base
+    - slack_signing_secret
+    - slack_bot_token
+    - spotify_client_secret
+    - lastfm_api_key
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nozomi
+      POSTGRES_DB: nozomi_station
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets: [postgres_password]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U nozomi -d nozomi_station"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  volume-init:
+    image: postgres:17-alpine
+    user: "0:0"
+    restart: "no"
+    network_mode: none
+    entrypoint: /bin/sh
+    command:
+      - -ec
+      - chown 1000:1000 /media && chown 100:101 /hls && chmod 755 /media /hls
+    volumes:
+      - media:/media
+      - hls:/hls
+
+  migrate:
+    <<: *release
+    restart: "no"
+    command: [bin/nozomi_station, eval, "NozomiStation.Release.migrate()"]
+    networks: [database]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  liquidsoap:
+    image: savonet/liquidsoap:v2.4.5
+    user: "100:101"
+    init: true
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    command: /etc/liquidsoap/radio.liq
+    volumes:
+      - ./config/liquidsoap:/etc/liquidsoap:ro
+      - hls:/hls
+      - media:/media:ro
+    networks: [control]
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD-SHELL, "test -n \"$$(find /hls -name '*.ts' -mmin -1 -print -quit)\" && test -s /hls/live.m3u8"]
+      interval: 10s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
+
+  phoenix:
+    <<: *release
+    restart: unless-stopped
+    stop_grace_period: 30s
+    volumes:
+      - media:/media
+    networks: [database, control, web, egress]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      volume-init:
+        condition: service_completed_successfully
+      liquidsoap:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --max-time, "3", "http://127.0.0.1:4000/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  proxy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    environment:
+      PHX_HOST: ${PHX_HOST:?Set the public hostname}
+      TLS_POLICY: ${ACME_EMAIL:?Set the ACME contact email}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - hls:/srv/hls:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [web, edge]
+    depends_on:
+      phoenix:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, "http://127.0.0.1:2019/config/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+networks:
+  database:
+    internal: true
+  control:
+    internal: true
+  web:
+    internal: true
+  egress: {}
+  edge: {}
+
+volumes:
+  postgres-data:
+  media:
+  hls:
+  caddy-data:
+  caddy-config:
+
+# File paths point outside the checkout. Compose config exposes paths, not values.
+secrets:
+  postgres_password:
+    file: ${SECRETS_DIR:?Set an absolute external secrets directory}/postgres_password
+  database_url:
+    file: ${SECRETS_DIR:?Set an absolute external secrets directory}/database_url
+  secret_key_base:
+    file: ${SECRETS_DIR:?Set an absolute external secrets directory}/secret_key_base
+  slack_signing_secret:
+    file: ${SECRETS_DIR:?Set an absolute external secrets directory}/slack_signing_secret
+  slack_bot_token:
+    file: ${SECRETS_DIR:?Set an absolute external secrets directory}/slack_bot_token
+  spotify_client_secret:
+    file: ${SECRETS_DIR:?Set an absolute external secrets directory}/spotify_client_secret
+  lastfm_api_key:
+    file: ${SECRETS_DIR:?Set an absolute external secrets directory}/lastfm_api_key
