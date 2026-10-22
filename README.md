@@ -40,7 +40,7 @@ cd nozomi-station
 docker compose up -d --wait postgres
 npm ci --prefix assets
 mix setup
-mkdir -p priv/static/hls tmp/media
+mkdir -p priv/static/hls tmp/media tmp/radio-recovery
 LIQUIDSOAP_UID="$(id -u)" LIQUIDSOAP_GID="$(id -g)" docker compose up -d liquidsoap
 mix phx.server
 ```
@@ -89,6 +89,7 @@ Integración HLS:
 bash scripts/verify-liquidsoap-hls.sh
 bash scripts/verify-hls-sync.sh
 bash scripts/verify-programming-priority.sh
+bash scripts/verify-radio-recovery.sh
 ```
 
 La integración HLS comprueba el códec, la continuidad del manifiesto y que dos clientes simultáneos compartan la misma ventana de emisión.
@@ -108,6 +109,16 @@ lib/nozomi_station_web/live/        interfaz LiveView
 scripts/                            verificaciones ejecutables
 specs/                              alcance, epics, ADR y evidencias
 ```
+
+## Broadcast recovery
+
+Liquidsoap persists delivery receipts and one-second playback checkpoints in
+`tmp/radio-recovery`, mounted at `/recovery`. Keep this directory private,
+writable by the Liquidsoap user, and backed up together with PostgreSQL and
+`tmp/media`. Do not delete receipts or reuse this directory with a different
+database. Recovery resumes unfinished audio automatically, interrupted track
+first, with a target source-position rewind of at most 2 seconds. See
+[ADR-0005](specs/adr/0005-durable-broadcast-recovery.md) for the protocol and limits.
 
 ## Próximos recorridos
 

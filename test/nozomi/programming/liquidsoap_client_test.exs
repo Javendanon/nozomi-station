@@ -20,95 +20,95 @@ defmodule NozomiStation.Programming.LiquidsoapClientTest do
   end
 
   test "pushes through the local text protocol" do
-    server = server(["17\r\nEND\r\nBye!\r\n"])
+    {server, ref} = server(["17\r\nEND\r\nBye!\r\n"])
 
     assert :ok = LiquidsoapClient.push(:requested, "tmp/media/17.m4a")
     assert_receive {:control_command, "requested.push /media/17.m4a\nquit\n"}
-    Task.await(server)
+    assert_receive {:DOWN, ^ref, :process, ^server, :normal}
   end
 
-  test "reads active paths across request metadata commands" do
-    server =
-      server([
-        "4\r\nEND\r\nBye!\r\n",
-        "status=\"ready\"\nfilename=\"/media/c4.m4a\"\r\nEND\r\nBye!\r\n"
-      ])
-
-    assert {:ok, ["tmp/media/c4.m4a"]} = LiquidsoapClient.active_paths()
-    assert_receive {:control_command, "request.all\nquit\n"}
-    assert_receive {:control_command, "request.metadata 4\nquit\n"}
-    Task.await(server)
-  end
-
-  test "finds the request playing outside both pending queues" do
-    command = fn
-      "request.all" -> {:ok, ["3 4 5"]}
-      "requested.queue" -> {:ok, []}
-      "complementary.queue" -> {:ok, ["4 5"]}
-      "request.metadata 3" -> {:ok, [~s(filename="/media/c3.m4a"), ~s(status="ready")]}
+  test "reads the actual current track including the private resume queue" do
+    command = fn "radio.current" ->
+      {:ok, [~s({"key":"complementary-3","path":"/media/c3.m4a","position":42.0})]}
     end
 
     assert {:ok, "tmp/media/c3.m4a"} = LiquidsoapClient.current_path(command, [])
   end
 
-  test "returns no current path while every request remains queued" do
-    command = fn
-      "request.all" -> {:ok, ["8 9"]}
-      "requested.queue" -> {:ok, ["8"]}
-      "complementary.queue" -> {:ok, ["9"]}
-    end
-
-    assert {:ok, nil} = LiquidsoapClient.current_path(command, [])
-  end
-
-  test "handles a current request that finishes during metadata lookup" do
-    base = fn
-      "request.all" -> {:ok, ["8"]}
-      "requested.queue" -> {:ok, []}
-      "complementary.queue" -> {:ok, []}
-    end
-
+  test "returns no current path during fallback and preserves control failures" do
     assert {:ok, nil} =
              LiquidsoapClient.current_path(
-               fn
-                 "request.metadata 8" -> {:ok, ["No such request."]}
-                 command -> base.(command)
-               end,
+               fn "radio.current" -> {:ok, [~s({"key":"","path":""})]} end,
                []
              )
 
     assert {:error, :closed} =
-             LiquidsoapClient.current_path(
-               fn
-                 "request.metadata 8" -> {:error, :closed}
-                 command -> base.(command)
-               end,
-               []
-             )
+             LiquidsoapClient.current_path(fn "radio.current" -> {:error, :closed} end, [])
   end
 
-  test "rejects malformed current request IDs" do
-    command = fn "request.all" -> {:ok, ["8 injected"]} end
-
-    assert {:error, :invalid_control_response} = LiquidsoapClient.current_path(command, [])
+  test "rejects malformed current snapshots" do
+    for snapshot <- ["not json", ~s({"key":17,"path":"/media/c3.m4a"})] do
+      assert {:error, :invalid_control_response} =
+               LiquidsoapClient.current_path(fn "radio.current" -> {:ok, [snapshot]} end, [])
+    end
   end
 
-  test "scheduler worker delegates through the real control boundary" do
-    server = server(["\r\nEND\r\nBye!\r\n"])
-
+  test "scheduler worker leaves an empty queue unchanged without control I/O" do
     assert {:ok, %{requested: 0, complementary: 0}} =
              SchedulerWorker.perform(%Oban.Job{})
+  end
 
-    Task.await(server)
+  test "uses a stable delivery key and validates the durable receipt" do
+    command = fn value ->
+      assert value == "radio.enqueue requested-17 requested /media/17.m4a"
+      {:ok, [~s({"key":"requested-17","state":"playing","position":42.5})]}
+    end
+
+    assert {:ok, "queued"} =
+             LiquidsoapClient.deliver(:requested, 17, "tmp/media/17.m4a", command, [])
+
+    for response <- [
+          ~s({"key":"requested-18","state":"played","position":0}),
+          ~s({"key":"requested-17","state":"unknown","position":0}),
+          ~s({"key":"requested-17","state":"played","position":-1}),
+          "not json"
+        ] do
+      assert {:error, :invalid_control_response} =
+               LiquidsoapClient.deliver(
+                 :requested,
+                 17,
+                 "tmp/media/17.m4a",
+                 fn _ -> {:ok, [response]} end,
+                 []
+               )
+    end
+  end
+
+  test "rejects traversal and annotation injection before sending a delivery" do
+    for path <- [
+          "tmp/media/../secret.m4a",
+          "tmp/media/a/../../secret.m4a",
+          "tmp/media/track\".m4a",
+          "tmp/media/track\nquit"
+        ] do
+      assert {:error, :invalid_media_path} =
+               LiquidsoapClient.deliver(
+                 :requested,
+                 17,
+                 path,
+                 fn _ -> flunk("unsafe path reached control socket") end,
+                 []
+               )
+    end
   end
 
   test "fails closed when Liquidsoap rejects a command" do
-    server = server(["ERROR: invalid request\r\nEND\r\nBye!\r\n"])
+    {server, ref} = server(["ERROR: invalid request\r\nEND\r\nBye!\r\n"])
 
     assert {:error, :control_rejected} =
              LiquidsoapClient.push(:complementary, "tmp/media/c5.m4a")
 
-    Task.await(server)
+    assert_receive {:DOWN, ^ref, :process, ^server, :normal}
   end
 
   defp server(responses) do
@@ -117,16 +117,22 @@ defmodule NozomiStation.Programming.LiquidsoapClientTest do
     {:ok, {_address, port}} = :inet.sockname(listener)
     Application.put_env(:nozomi_station, :liquidsoap_port, port)
 
-    Task.async(fn ->
-      Enum.each(responses, fn response ->
-        {:ok, socket} = :gen_tcp.accept(listener)
-        {:ok, command} = :gen_tcp.recv(socket, 0, 1_000)
-        send(test, {:control_command, command})
-        :ok = :gen_tcp.send(socket, response)
-        :gen_tcp.close(socket)
-      end)
+    pid =
+      start_supervised!(
+        {Task,
+         fn ->
+           Enum.each(responses, fn response ->
+             {:ok, socket} = :gen_tcp.accept(listener)
+             {:ok, command} = :gen_tcp.recv(socket, 0, 1_000)
+             send(test, {:control_command, command})
+             :ok = :gen_tcp.send(socket, response)
+             :gen_tcp.close(socket)
+           end)
 
-      :gen_tcp.close(listener)
-    end)
+           :gen_tcp.close(listener)
+         end}
+      )
+
+    {pid, Process.monitor(pid)}
   end
 end

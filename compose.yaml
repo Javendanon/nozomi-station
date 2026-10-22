@@ -25,6 +25,7 @@ services:
       - ./config/liquidsoap:/etc/liquidsoap:ro
       - ./priv/static/hls:/hls
       - ./tmp/media:/media:ro
+      - ./tmp/radio-recovery:/recovery
 
 volumes:
   postgres-data:

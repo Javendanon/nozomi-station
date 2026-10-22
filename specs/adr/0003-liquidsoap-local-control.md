@@ -26,7 +26,7 @@ PostgreSQL conserva el estado durable. El planificador consulta los request IDs 
 - El puerto de control no puede publicarse en una interfaz externa.
 - Las rutas de Phoenix deben traducirse al montaje `/media` de Liquidsoap.
 - Una caída de control deja elementos `ready` y permite reintento.
-- La recuperación exacta después de reiniciar Liquidsoap permanece en e08.
+- Recovery after restart is implemented by [ADR-0005](0005-durable-broadcast-recovery.md); volatile queue absence is no longer used as completion evidence.
 - No se añade `socat`, SDK ni proceso planificador propio.
 
 ## Alternativas rechazadas
