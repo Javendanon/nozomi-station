@@ -37,37 +37,10 @@ defmodule NozomiStation.Programming.LiquidsoapClient do
   def current_path, do: current_path(&command/1, [])
 
   def current_path(command, options) do
-    with {:ok, all} <- request_ids(command, "request.all"),
-         {:ok, requested} <- request_ids(command, "requested.queue"),
-         {:ok, complementary} <- request_ids(command, "complementary.queue") do
-      case all -- (requested ++ complementary) do
-        [] ->
-          {:ok, nil}
-
-        ids ->
-          # During a crossfade the outgoing request may still be active. The highest
-          # request id is the incoming track, so the now-playing card and votes move
-          # once, at the crossfade boundary, instead of jumping twice.
-          id = Enum.max_by(ids, &String.to_integer/1)
-          current_request_path(id, command, options)
-      end
-    end
-  end
-
-  defp request_ids(command, value) do
-    with {:ok, lines} <- command.(value) do
-      ids = Enum.flat_map(lines, &String.split/1)
-
-      if Enum.all?(ids, &(&1 =~ ~r/^\d+$/)),
-        do: {:ok, ids},
-        else: {:error, :invalid_control_response}
-    end
-  end
-
-  defp current_request_path(id, command, options) do
-    case active_path(id, command, options) do
-      {:ok, path} -> {:ok, path}
-      :finished -> {:ok, nil}
+    case command.("radio.current_path") do
+      {:ok, []} -> {:ok, nil}
+      {:ok, [path]} -> from_liquidsoap_path(path, options)
+      {:ok, _response} -> {:error, :invalid_control_response}
       error -> error
     end
   end
