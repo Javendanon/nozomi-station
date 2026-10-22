@@ -1,12 +1,13 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import {connectToLiveStream, RadioPlayer} from "./radio_player.mjs"
+import {connectToLiveStream, RadioPlayer, VolumeControl} from "./radio_player.mjs"
 
 const audio = nativeHls => ({
   canPlayType: () => nativeHls ? "maybe" : "",
   play() {
     this.played = true
+    this.playCount = (this.playCount || 0) + 1
     return Promise.resolve()
   },
 })
@@ -35,30 +36,33 @@ test("uses native HLS support when the browser provides it", async () => {
 
 test("uses hls.js at the live edge when native HLS is unavailable", async () => {
   class FakeHls {
-    static Events = {MANIFEST_PARSED: "manifest"}
+    static Events = {MANIFEST_PARSED: "manifest", ERROR: "error"}
     static isSupported() { return true }
 
     constructor(config) { this.config = config }
-    on(_event, callback) { this.ready = callback }
-    loadSource(source) { this.source = source; this.ready() }
+    on(event, callback) { this[event] = callback }
+    loadSource(source) { this.source = source; this.manifest() }
     attachMedia(element) { this.element = element }
   }
 
   const element = audio(false)
-  const hls = await connectToLiveStream(element, "/hls/live.m3u8", FakeHls)
+  let fatalErrors = 0
+  const hls = await connectToLiveStream(element, "/hls/live.m3u8", FakeHls, () => fatalErrors++)
 
   assert.equal(hls.source, "/hls/live.m3u8")
   assert.equal(hls.element, element)
   assert.equal(hls.config.liveSyncDuration, 1)
   assert.equal(hls.config.liveMaxLatencyDuration, 2)
   assert.equal(element.played, true)
+  hls.error(null, {fatal: false})
+  hls.error(null, {fatal: true})
+  assert.equal(fatalErrors, 1)
 })
 
-test("keeps live playback on repeated joins and releases it when unmounting", async () => {
-  const button = eventTarget({})
+test("keeps live playback across patches and reconnects after the stream ends", async () => {
+  const button = eventTarget({dataset: {}})
   const streamAudio = eventTarget(audio(true))
-  const status = {textContent: "En vivo"}
-  const elements = {"#join-live": button, "#live-audio": streamAudio, "#stream-status": status}
+  const elements = {"#join-live": button, "#live-audio": streamAudio}
   const hook = {
     ...RadioPlayer,
     el: {dataset: {stream: "/hls/live.m3u8"}, querySelector: selector => elements[selector]},
@@ -66,16 +70,54 @@ test("keeps live playback on repeated joins and releases it when unmounting", as
   let destroyed = 0
 
   hook.mounted()
+  await button.trigger("click")
+  assert.equal(streamAudio.played, true)
   hook.hls = {destroy: () => destroyed++}
   await streamAudio.trigger("playing")
 
-  assert.equal(button.hidden, true)
+  assert.equal(button.hidden, false)
+  assert.equal(button.disabled, true)
+  assert.equal(button.ariaLabel, "Emisión en vivo")
+  assert.equal(button.dataset.live, "true")
+
+  hook.el.dataset.live = "false"
+  assert.equal(button.dataset.live, "true")
   await button.trigger("click")
   assert.equal(destroyed, 0)
-  assert.equal(status.textContent, "En vivo")
-  assert.equal(button.listensTo("click"), true)
-  hook.destroyed()
+
+  await streamAudio.trigger("ended")
+  assert.equal(hook.connected, false)
+  assert.equal(button.disabled, false)
+  assert.equal(button.dataset.live, "false")
   assert.equal(destroyed, 1)
+
+  await button.trigger("click")
+  assert.equal(streamAudio.playCount, 2)
+  await streamAudio.trigger("playing")
+  assert.equal(button.dataset.live, "true")
+
+  hook.destroyed()
   assert.equal(button.listensTo("click"), false)
   assert.equal(streamAudio.listensTo("playing"), false)
+  assert.equal(streamAudio.listensTo("ended"), false)
+  assert.equal(streamAudio.listensTo("error"), false)
+})
+
+test("moves the Shinkansen volume control in one-percent steps without reconnecting", () => {
+  const streamAudio = audio(true)
+  const volume = eventTarget({value: "0.65"})
+  const elements = {"#volume-control": volume}
+  const hook = {
+    ...VolumeControl,
+    el: {querySelector: selector => elements[selector]},
+    audio: streamAudio,
+  }
+
+  hook.mounted()
+  assert.equal(streamAudio.volume, 0.65)
+  volume.value = "0.64"
+  volume.trigger("input")
+  assert.equal(streamAudio.volume, 0.64)
+  hook.destroyed()
+  assert.equal(volume.listensTo("input"), false)
 })

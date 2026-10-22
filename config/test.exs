@@ -15,6 +15,7 @@ config :nozomi_station, :slack_channel_id, "C01"
 config :nozomi_station, :spotify_client_id, "test-spotify-id"
 config :nozomi_station, :spotify_client_secret, "test-spotify-secret"
 config :nozomi_station, :lastfm_api_key, "test-lastfm-key"
+config :nozomi_station, :now_playing_options, poll: false
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.

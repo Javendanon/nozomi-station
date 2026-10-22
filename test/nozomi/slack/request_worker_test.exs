@@ -31,7 +31,8 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
         "channel" => "C01",
         "user" => "U01",
         "ts" => "123.45",
-        "text" => "first https://youtu.be/one then https://open.spotify.com/track/two"
+        "text" =>
+          "Hola, les comparto estas canciones: https://youtu.be/one https://open.spotify.com/track/two"
       }
     }
 
@@ -72,8 +73,15 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
     assert_received {:resolved, "https://youtu.be/one"}
     assert_received {:resolved, "https://open.spotify.com/track/two"}
 
-    assert_received {:prepared, "one",
-                     %{slack_user: "U01", slack_channel: "C01", thread_ts: "123.45"}}
+    requester = %{
+      slack_user: "U01",
+      slack_channel: "C01",
+      thread_ts: "123.45",
+      listener_message: "Hola, les comparto estas canciones:"
+    }
+
+    assert_received {:prepared, "one", ^requester}
+    assert_received {:prepared, "two", ^requester}
 
     assert_received {:reply, "C01", "123.45", "Aceptada: one · posición 1"}
     assert_received {:reply, "C01", "123.45", "Aceptada: two · posición 2"}
@@ -136,7 +144,7 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
         "channel" => "C01",
         "user" => "U01",
         "ts" => "456.78",
-        "text" => "https://youtu.be/live https://youtu.be/ready"
+        "text" => "<https://youtu.be/live> <https://youtu.be/ready>.."
       }
     }
 
@@ -150,7 +158,10 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
         {:ok, %{youtube_id: "ready", title: "Ready", artist: "Nozomi", duration_seconds: 120}}
     end
 
-    prepare = fn track, _requester -> {:ok, %{title: track.title}, 1} end
+    prepare = fn track, requester ->
+      send(self(), {:requester, requester})
+      {:ok, %{title: track.title}, 1}
+    end
 
     reply = fn channel, thread_ts, text ->
       send(self(), {:reply, channel, thread_ts, text})
@@ -163,5 +174,6 @@ defmodule NozomiStation.Slack.RequestWorkerTest do
     assert :ok = RequestWorker.perform(job, deps)
     assert_received {:reply, "C01", "456.78", "Rechazada: la canción no es reproducible"}
     assert_received {:reply, "C01", "456.78", "Aceptada: Ready · posición 1"}
+    assert_received {:requester, %{listener_message: nil}}
   end
 end

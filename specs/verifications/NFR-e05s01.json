@@ -1,0 +1,44 @@
+{
+  "story_id": "e05s01",
+  "generated_at": "2026-08-16T19:15:21Z",
+  "verdict": "PASS_WITH_HUMAN_REVIEW_PENDING",
+  "performance": {
+    "status": "pass",
+    "evidence": "One supervised process polls Liquidsoap every 2000 ms and enriches only on path changes; listeners receive PubSub without per-listener provider calls.",
+    "capacity_target": 50
+  },
+  "reliability": {
+    "status": "pass",
+    "evidence": "Tests prove unchanged paths are not republished, ended paths clear once, control/provider failures preserve the last valid track, and browser/HLS failures expose reconnection without a refresh."
+  },
+  "operability": {
+    "status": "pass",
+    "evidence": "now_playing_changed and now_playing_poll_failed logs expose transitions and bounded failures without credentials."
+  },
+  "quality": {
+    "elixir_tests": 71,
+    "javascript_tests": 4,
+    "product_coverage_percent": 90.81,
+    "npm_vulnerabilities": 0,
+    "retired_hex_packages": 0
+  },
+  "integration": {
+    "liquidsoap_hls": "pass",
+    "hls_sync": "pass",
+    "programming_priority": "pass",
+    "real_current_path": "tmp/media/c4.m4a",
+    "localhost_status": 200,
+    "lastfm_real": {
+      "album": "Substance 1987",
+      "cover_allowlisted": true,
+      "tag_count": 5,
+      "summary": true
+    },
+    "listener_message": "Slack text is bounded to 280 characters, persisted, HEEx-escaped, and omitted for link-only messages",
+    "local_volume": "Native range control changes only HTMLAudioElement.volume without reconnecting HLS"
+  },
+  "pending": [
+    "Human visual confirmation on desktop/mobile and prefers-reduced-motion",
+    "Human confirmation that the real Last.fm album, tags, summary, and CDN cover render correctly"
+  ]
+}

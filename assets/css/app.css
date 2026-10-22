@@ -2,6 +2,7 @@
    https://tailwindcss.com/docs/configuration */
 
 @import "tailwindcss" source(none);
+@import "./radio.css";
 @import "phoenix-colocated/nozomi_station/colocated.css";
 @source "../css";
 @source "../js";
