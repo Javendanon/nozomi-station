@@ -4,6 +4,8 @@ defmodule NozomiStation.Programming.Lastfm do
   @endpoint "https://ws.audioscrobbler.com/2.0/"
   @seeds ["rock", "80s"]
   @request_options [redirect: false, receive_timeout: 10_000]
+  @first_year 1900
+  @epoch_date ~r/^\s*0?1\s+Jan\s+1970\b/
 
   def candidates(mood, limit, request \\ &Req.request/1)
 
@@ -55,7 +57,12 @@ defmodule NozomiStation.Programming.Lastfm do
 
     case request.(options) do
       {:ok, %Req.Response{status: 200, body: %{"track" => track}}} ->
-        {:ok, track_details(track)}
+        details = track_details(track)
+
+        {:ok,
+         details
+         |> put_detail(:year, album_year(details[:album], artist, key, request))
+         |> put_detail(:related, related_artists(artist, key, request))}
 
       _ ->
         Logger.warning("lastfm_request_failed method=track.getInfo")
@@ -64,20 +71,26 @@ defmodule NozomiStation.Programming.Lastfm do
   end
 
   defp fetch(request, method, params) do
+    request
+    |> get_json(method, params, api_key())
+    |> tracks()
+  end
+
+  defp get_json(request, method, params, key) do
     options =
       [
         method: :get,
         url: @endpoint,
-        params: [method: method, api_key: api_key(), format: "json"] ++ params
+        params: [method: method, api_key: key, format: "json"] ++ params
       ] ++ @request_options
 
     case request.(options) do
-      {:ok, %Req.Response{status: 200, body: body}} ->
-        tracks(body)
+      {:ok, %Req.Response{status: 200, body: body}} when is_map(body) ->
+        body
 
       _ ->
         Logger.warning("lastfm_request_failed method=#{method}")
-        []
+        %{}
     end
   end
 
@@ -122,6 +135,54 @@ defmodule NozomiStation.Programming.Lastfm do
       _ -> false
     end
   end
+
+  # https://www.last.fm/api/show/album.getInfo documents album.releasedate
+  # ("6 Apr 1999, 00:00"). This is the album year, not the wiki edit timestamp;
+  # responses without this optional field must leave the year absent.
+  defp album_year(album, artist, key, request) when is_binary(album) do
+    case get_json(request, "album.getInfo", [artist: artist, album: album], key) do
+      %{"album" => %{"releasedate" => date}} -> release_year(date)
+      _ -> nil
+    end
+  end
+
+  defp album_year(_album, _artist, _key, _request), do: nil
+
+  # Last.fm answers with the Unix epoch ("1 Jan 1970, 00:00") or an all-zero
+  # date when it has no real release date, so both are treated as absent.
+  defp release_year(date) when is_binary(date) do
+    with [year] <- Regex.run(~r/\b\d{4}\b/, date),
+         year = String.to_integer(year),
+         true <- plausible_year?(year),
+         false <- Regex.match?(@epoch_date, date) do
+      year
+    else
+      _ -> nil
+    end
+  end
+
+  defp release_year(_date), do: nil
+
+  defp plausible_year?(year), do: year >= @first_year and year <= Date.utc_today().year + 1
+
+  defp related_artists(artist, key, request) when is_binary(artist) do
+    case get_json(request, "artist.getSimilar", [artist: artist, limit: 5], key) do
+      %{"similarartists" => %{"artist" => artists}} when is_list(artists) ->
+        artists
+        |> Enum.flat_map(fn
+          %{"name" => name} when is_binary(name) and name != "" -> [name]
+          _ -> []
+        end)
+        |> Enum.reject(&(String.downcase(&1) == String.downcase(artist)))
+        |> Enum.uniq()
+        |> Enum.take(5)
+
+      _ ->
+        []
+    end
+  end
+
+  defp related_artists(_artist, _key, _request), do: []
 
   defp tags(values) when is_list(values) do
     values

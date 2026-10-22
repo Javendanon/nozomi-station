@@ -160,6 +160,29 @@ body {
   font-size: 0.82rem;
 }
 
+.track-year {
+  margin: 0.15rem 0 0;
+  color: var(--nozomi-blue);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+}
+
+.track-related {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.7rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  color: rgb(244 240 232 / 0.6);
+  font-size: 0.68rem;
+  list-style: none;
+}
+
+.track-related li::before {
+  content: "· ";
+  color: var(--nozomi-blue);
+}
+
 .track-tags {
   display: flex;
   flex-wrap: wrap;

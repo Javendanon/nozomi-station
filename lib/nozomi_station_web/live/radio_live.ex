@@ -60,6 +60,9 @@ defmodule NozomiStationWeb.RadioLive do
                 <p :if={Map.get(@now_playing, :album)} id="now-playing-album" class="track-album">
                   {Map.get(@now_playing, :album)}
                 </p>
+                <p :if={Map.get(@now_playing, :year)} id="now-playing-year" class="track-year">
+                  {Map.get(@now_playing, :year)}
+                </p>
                 <ul
                   :if={Map.get(@now_playing, :tags, []) != []}
                   id="now-playing-tags"
@@ -74,6 +77,13 @@ defmodule NozomiStationWeb.RadioLive do
                 >
                   {Map.get(@now_playing, :summary)}
                 </p>
+                <ul
+                  :if={Map.get(@now_playing, :related, []) != []}
+                  id="now-playing-related"
+                  class="track-related"
+                >
+                  <li :for={artist <- Map.get(@now_playing, :related, [])}>{artist}</li>
+                </ul>
                 <blockquote
                   :if={Map.get(@now_playing, :listener_message)}
                   id="listener-message"
