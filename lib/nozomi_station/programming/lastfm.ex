@@ -4,6 +4,8 @@ defmodule NozomiStation.Programming.Lastfm do
   @endpoint "https://ws.audioscrobbler.com/2.0/"
   @seeds ["rock", "80s"]
   @request_options [redirect: false, receive_timeout: 10_000]
+  @first_year 1900
+  @epoch_date ~r/^\s*0?1\s+Jan\s+1970\b/
 
   def candidates(mood, limit, request \\ &Req.request/1)
 
@@ -146,14 +148,22 @@ defmodule NozomiStation.Programming.Lastfm do
 
   defp album_year(_album, _artist, _key, _request), do: nil
 
+  # Last.fm answers with the Unix epoch ("1 Jan 1970, 00:00") or an all-zero
+  # date when it has no real release date, so both are treated as absent.
   defp release_year(date) when is_binary(date) do
-    case Regex.run(~r/\b\d{4}\b/, date) do
-      [year] -> String.to_integer(year)
+    with [year] <- Regex.run(~r/\b\d{4}\b/, date),
+         year = String.to_integer(year),
+         true <- plausible_year?(year),
+         false <- Regex.match?(@epoch_date, date) do
+      year
+    else
       _ -> nil
     end
   end
 
   defp release_year(_date), do: nil
+
+  defp plausible_year?(year), do: year >= @first_year and year <= Date.utc_today().year + 1
 
   defp related_artists(artist, key, request) when is_binary(artist) do
     case get_json(request, "artist.getSimilar", [artist: artist, limit: 5], key) do

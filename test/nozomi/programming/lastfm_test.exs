@@ -72,6 +72,10 @@ defmodule NozomiStation.Programming.LastfmTest do
     # Release-date example: https://www.last.fm/api/show/album.getInfo
     for {album, expected} <- [
           {%{"releasedate" => "6 Apr 1999, 00:00"}, %{album: "Believe", year: 1999}},
+          {%{"releasedate" => "2024-01-01"}, %{album: "Believe", year: 2024}},
+          {%{"releasedate" => "1 Jan 1970, 00:00"}, %{album: "Believe"}},
+          {%{"releasedate" => "0000-00-00"}, %{album: "Believe"}},
+          {%{"releasedate" => "1800"}, %{album: "Believe"}},
           {%{"wiki" => %{"published" => "6 Apr 1999, 00:00"}}, %{album: "Believe"}}
         ] do
       request =
