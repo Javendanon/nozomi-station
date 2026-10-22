@@ -29,7 +29,8 @@ defmodule NozomiStation.Slack.RequestWorker do
       channel: Application.fetch_env!(:nozomi_station, :slack_channel_id),
       resolver: &Resolver.resolve/1,
       prepare: &RequestFlow.prepare/2,
-      reply: &Client.reply/3
+      reply: &Client.reply/3,
+      display_name: &Client.display_name/1
     ]
   end
 end

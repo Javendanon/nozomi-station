@@ -40,12 +40,15 @@ defmodule NozomiStationWeb.RadioLiveTest do
          cover_url: "https://lastfm-img.freetls.fastly.net/i/u/300x300/cover.jpg",
          tags: ["new wave", "80s"],
          summary: "A classic.",
-         listener_message: "Para quienes siguen despiertos"
+         listener_message: "Para quienes siguen despiertos",
+         slack_display_name: "Kaede"
        }}
     )
 
     assert has_element?(first, "#now-playing-title", "Blue Monday")
     assert has_element?(second, "#now-playing-title", "Blue Monday")
+    assert has_element?(first, "#requested-by", "Pedido por Kaede")
+    assert has_element?(second, "#requested-by", "Pedido por Kaede")
     assert has_element?(first, "#now-playing-album", "Substance")
     assert has_element?(first, "#now-playing-cover[src*='lastfm-img.freetls.fastly.net']")
     assert has_element?(first, "#now-playing-summary", "A classic.")
@@ -64,6 +67,28 @@ defmodule NozomiStationWeb.RadioLiveTest do
     refute has_element?(view, "#now-playing-cover")
     refute has_element?(view, "#now-playing-album")
     refute has_element?(view, "#now-playing-summary")
+    refute has_element?(view, "#requested-by")
     assert has_element?(view, "#live-audio")
+  end
+
+  test "shows the requester name only for the request that is playing", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/")
+
+    Phoenix.PubSub.broadcast(
+      NozomiStation.PubSub,
+      "now_playing",
+      {:now_playing, %{title: "Night Train", artist: "Nozomi", slack_display_name: "Kaede"}}
+    )
+
+    assert has_element?(view, "#requested-by", "Kaede")
+
+    Phoenix.PubSub.broadcast(
+      NozomiStation.PubSub,
+      "now_playing",
+      {:now_playing, %{title: "Morning Line", artist: "Nozomi"}}
+    )
+
+    assert has_element?(view, "#now-playing-title", "Morning Line")
+    refute has_element?(view, "#requested-by")
   end
 end

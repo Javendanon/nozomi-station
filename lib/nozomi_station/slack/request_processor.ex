@@ -8,22 +8,24 @@ defmodule NozomiStation.Slack.RequestProcessor do
 
   def process(%{"event" => event}, deps) do
     if processable?(event, Keyword.fetch!(deps, :channel)) do
+      requester = requester(event, Keyword.fetch!(deps, :display_name))
+
       event["text"]
       |> links()
-      |> Enum.reduce_while(:ok, &process_link(&1, event, deps, &2))
+      |> Enum.reduce_while(:ok, &process_link(&1, event, requester, deps, &2))
     else
       :ok
     end
   end
 
-  defp process_link(url, event, deps, _result) do
+  defp process_link(url, event, requester, deps, _result) do
     resolver = Keyword.fetch!(deps, :resolver)
     prepare = Keyword.fetch!(deps, :prepare)
     reply = Keyword.fetch!(deps, :reply)
 
     result =
       with {:ok, track} <- resolver.(url),
-           {:ok, request, position} <- prepare.(track, requester(event)) do
+           {:ok, request, position} <- prepare.(track, requester) do
         {:accepted, track, request, position}
       end
 
@@ -62,13 +64,29 @@ defmodule NozomiStation.Slack.RequestProcessor do
     {:halt, {:error, reason}}
   end
 
-  defp requester(event) do
+  defp requester(event, display_name) do
     %{
       slack_user: event["user"],
+      slack_display_name: visible_name(display_name, event["user"]),
       slack_channel: event["channel"],
       thread_ts: event["ts"],
       listener_message: listener_message(event["text"])
     }
+  end
+
+  # A failed lookup removes the public name; the Slack ID is never a substitute.
+  defp visible_name(display_name, user) do
+    case display_name.(user) do
+      {:ok, name} when is_binary(name) ->
+        name
+
+      {:error, reason} ->
+        Logger.info("slack_display_name_unavailable reason=#{inspect(reason)}")
+        nil
+
+      _ ->
+        nil
+    end
   end
 
   defp processable?(event, channel) do

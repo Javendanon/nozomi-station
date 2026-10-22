@@ -89,8 +89,17 @@ defmodule NozomiStation.Programming.NowPlaying do
 
   defp find_by_path(schema, path) do
     case Repo.one(from(item in schema, where: item.file_path == ^path, limit: 1)) do
-      nil -> nil
-      item -> Map.take(item, [:title, :artist, :duration_seconds, :listener_message])
+      nil ->
+        nil
+
+      item ->
+        Map.take(item, [
+          :title,
+          :artist,
+          :duration_seconds,
+          :listener_message,
+          :slack_display_name
+        ])
     end
   end
 
