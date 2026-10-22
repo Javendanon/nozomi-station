@@ -51,6 +51,28 @@ defmodule NozomiStation.Programming.LiquidsoapClientTest do
     assert {:ok, "tmp/media/c3.m4a"} = LiquidsoapClient.current_path(command, [])
   end
 
+  test "selects the incoming request while a crossfade keeps both tracks active" do
+    command = fn
+      "request.all" -> {:ok, ["3 4"]}
+      "requested.queue" -> {:ok, []}
+      "complementary.queue" -> {:ok, []}
+      "request.metadata 4" -> {:ok, [~s(filename="/media/c4.m4a"), ~s(status="ready")]}
+    end
+
+    assert {:ok, "tmp/media/c4.m4a"} = LiquidsoapClient.current_path(command, [])
+  end
+
+  test "orders request ids numerically at the crossfade boundary" do
+    command = fn
+      "request.all" -> {:ok, ["9 10"]}
+      "requested.queue" -> {:ok, []}
+      "complementary.queue" -> {:ok, []}
+      "request.metadata 10" -> {:ok, [~s(filename="/media/c10.m4a")]}
+    end
+
+    assert {:ok, "tmp/media/c10.m4a"} = LiquidsoapClient.current_path(command, [])
+  end
+
   test "returns no current path while every request remains queued" do
     command = fn
       "request.all" -> {:ok, ["8 9"]}

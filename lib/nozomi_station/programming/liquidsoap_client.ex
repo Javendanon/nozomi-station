@@ -40,9 +40,16 @@ defmodule NozomiStation.Programming.LiquidsoapClient do
     with {:ok, all} <- request_ids(command, "request.all"),
          {:ok, requested} <- request_ids(command, "requested.queue"),
          {:ok, complementary} <- request_ids(command, "complementary.queue") do
-      case List.first(all -- (requested ++ complementary)) do
-        nil -> {:ok, nil}
-        id -> current_request_path(id, command, options)
+      case all -- (requested ++ complementary) do
+        [] ->
+          {:ok, nil}
+
+        ids ->
+          # During a crossfade the outgoing request may still be active. The highest
+          # request id is the incoming track, so the now-playing card and votes move
+          # once, at the crossfade boundary, instead of jumping twice.
+          id = Enum.max_by(ids, &String.to_integer/1)
+          current_request_path(id, command, options)
       end
     end
   end

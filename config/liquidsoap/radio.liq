@@ -5,7 +5,12 @@ set("server.telnet.port", 1234)
 
 requested = request.queue(id="requested", prefetch=1)
 complementary = request.queue(id="complementary", prefetch=1)
+
+# Songs cross-fade for four seconds. Liquidsoap hands the incoming request to the
+# crossfade at the start of that window, which is the observable track change for
+# the now-playing card and community votes; the outgoing track keeps fading out.
 music = fallback(track_sensitive=true, [requested, complementary])
+music = crossfade(id="music", duration=4.0, fade_in=4.0, fade_out=4.0, music)
 radio = fallback(track_sensitive=false, [music, sine(440.0, amplitude=0.08)])
 
 encoder = %ffmpeg(
