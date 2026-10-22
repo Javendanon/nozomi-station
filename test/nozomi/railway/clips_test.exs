@@ -180,29 +180,47 @@ defmodule NozomiStation.Railway.ClipsTest do
     source = Path.join(dir, "source.wav")
     destination = Path.join(dir, "prepared.m4a")
     File.write!(source, "source")
-
+    File.write!(destination, "previous clip")
     test = self()
+    normalize = normalizing_runner()
 
-    runner = fn
-      "ffmpeg", args ->
-        if destination in args and "volumedetect" not in args do
-          send(test, {:normalize_args, args})
-          File.write!(destination, "normalized")
-          {"", 0}
-        else
-          if "volumedetect" in args, do: {"max_volume: -1.5 dB", 0}, else: {"", 0}
-        end
+    runner = fn command, args ->
+      if "-b:a" in args do
+        send(test, {:normalize_args, args})
+        assert File.read!(destination) == "previous clip"
+      end
 
-      "ffprobe", _args ->
-        {stream_json("aac", "48000", 2), 0}
+      normalize.(command, args)
     end
 
-    assert {:ok, %{peak_db: -1.5}} = Clips.prepare(source, destination, runner: runner)
-    assert File.regular?(destination)
+    assert {:ok, %{peak_db: -1.5} = metadata} =
+             Clips.prepare(source, destination, runner: runner)
+
+    assert File.read!(destination) == "normalized"
+    assert File.read!(source) == "source"
+    assert Enum.sort(File.ls!(dir)) == ["prepared.m4a", "source.wav"]
     assert_received {:normalize_args, args}
+    assert List.last(args) != destination
     assert "loudnorm=I=-16:TP=-1.5:LRA=11" in args
     assert "48000" in args
     assert "192k" in args
+    assert metadata.duration_seconds == 2.0
+  end
+
+  test "reloads measured metadata as an available catalog entry", %{dir: dir} do
+    source = Path.join(dir, "source.wav")
+    destination = Path.join(dir, "prepared.m4a")
+    File.write!(source, "source")
+    runner = normalizing_runner()
+    assert {:ok, metadata} = Clips.prepare(source, destination, runner: runner)
+
+    assert {:ok, catalog} =
+             load_catalog(dir, [clip("prepared", duration_seconds: metadata.duration_seconds)])
+
+    assert [%{duration_seconds: 2.0}] = catalog.clips
+
+    assert {:ok, [%{id: "prepared", duration_seconds: 2.0}]} =
+             Clips.verify_catalog(catalog, Path.join(dir, "catalog.json"), runner: runner)
   end
 
   test "deletes a prepared file that fails verification", %{dir: dir} do
@@ -210,22 +228,66 @@ defmodule NozomiStation.Railway.ClipsTest do
     destination = Path.join(dir, "prepared.m4a")
     File.write!(source, "source")
 
-    runner = fn
-      "ffmpeg", args ->
-        if destination in args and "volumedetect" not in args do
-          File.write!(destination, "normalized")
-          {"", 0}
-        else
-          if "volumedetect" in args, do: {"max_volume: 0.0 dB", 0}, else: {"", 0}
-        end
+    assert {:error, {:peak_too_high, peak}} =
+             Clips.prepare(source, destination, runner: normalizing_runner("0.0"))
 
-      "ffprobe", _args ->
-        {stream_json("aac", "48000", 2), 0}
-    end
-
-    assert {:error, {:peak_too_high, peak}} = Clips.prepare(source, destination, runner: runner)
     assert peak > -1.0
     refute File.exists?(destination)
+    assert File.ls!(dir) == ["source.wav"]
+  end
+
+  test "preserves existing files when normalization fails or ffmpeg is unavailable", %{dir: dir} do
+    source = Path.join(dir, "source.wav")
+    destination = Path.join(dir, "prepared.m4a")
+    File.write!(source, "source")
+
+    for status <- [1, 127] do
+      File.write!(destination, "previous clip")
+
+      runner = fn "ffmpeg", args ->
+        if status == 1, do: File.write!(List.last(args), "partial output")
+        {"normalization failed", status}
+      end
+
+      assert {:error, :normalization_failed} = Clips.prepare(source, destination, runner: runner)
+      assert File.read!(source) == "source"
+      assert File.read!(destination) == "previous clip"
+      assert Enum.sort(File.ls!(dir)) == ["prepared.m4a", "source.wav"]
+    end
+  end
+
+  test "preserves the destination when output verification fails", %{dir: dir} do
+    source = Path.join(dir, "source.wav")
+    destination = Path.join(dir, "prepared.m4a")
+    File.write!(source, "source")
+    File.write!(destination, "previous clip")
+
+    assert {:error, {:peak_too_high, _peak}} =
+             Clips.prepare(source, destination, runner: normalizing_runner("0.0"))
+
+    assert File.read!(source) == "source"
+    assert File.read!(destination) == "previous clip"
+    assert Enum.sort(File.ls!(dir)) == ["prepared.m4a", "source.wav"]
+  end
+
+  test "rejects source and destination aliases without invoking ffmpeg", %{dir: dir} do
+    source = Path.join(dir, "source.m4a")
+    symlink = Path.join(dir, "symlink.m4a")
+    hardlink = Path.join(dir, "hardlink.m4a")
+    File.write!(source, "source")
+    File.ln_s!(source, symlink)
+    File.ln!(source, hardlink)
+    runner = fn _, _ -> flunk("ffmpeg reached an aliased destination") end
+
+    for destination <- [source, dir <> "/./source.m4a", symlink, hardlink] do
+      assert {:error, :source_destination_alias} =
+               Clips.prepare(source, destination, runner: runner)
+
+      assert File.read!(destination) == "source"
+      assert File.read!(source) == "source"
+    end
+
+    assert Enum.sort(File.ls!(dir)) == ["hardlink.m4a", "source.m4a", "symlink.m4a"]
   end
 
   test "rejects malformed catalog entries", %{dir: dir} do
@@ -291,6 +353,19 @@ defmodule NozomiStation.Railway.ClipsTest do
     File.write!(path, "audio")
     on_exit(fn -> File.rm(path) end)
     path
+  end
+
+  defp normalizing_runner(peak \\ "-1.5") do
+    verify = passing_runner(peak)
+
+    fn command, args ->
+      if "-b:a" in args do
+        File.write!(List.last(args), "normalized")
+        {"", 0}
+      else
+        verify.(command, args)
+      end
+    end
   end
 
   defp passing_runner(peak \\ "-2.0") do

@@ -63,26 +63,32 @@ defmodule NozomiStation.Railway.Clips do
   end
 
   def prepare(source, destination, opts \\ []) do
-    runner = Keyword.get(opts, :runner, &run/2)
-
     with :ok <- ensure_regular_file(source),
          :ok <- ensure_destination(destination),
-         {_output, 0} <- runner.("ffmpeg", normalize_args(source, destination)) do
-      case verify_file(destination, opts) do
-        {:ok, metadata} ->
+         :ok <- ensure_distinct_files(source, destination) do
+      prepare_temporary(source, destination, opts)
+    end
+  end
+
+  defp prepare_temporary(source, destination, opts) do
+    runner = Keyword.get(opts, :runner, &run/2)
+    directory = destination <> ".prepare-#{System.unique_integer([:positive])}"
+
+    with :ok <- File.mkdir(directory) do
+      temporary = Path.join(directory, "clip.m4a")
+
+      try do
+        with {_output, 0} <- runner.("ffmpeg", normalize_args(source, temporary)),
+             {:ok, metadata} <- verify_file(temporary, opts),
+             :ok <- File.rename(temporary, destination) do
           {:ok, metadata}
-
-        {:error, reason} ->
-          File.rm(destination)
-          {:error, reason}
+        else
+          {:error, reason} -> {:error, reason}
+          {_output, _status} -> {:error, :normalization_failed}
+        end
+      after
+        File.rm_rf(directory)
       end
-    else
-      {:error, reason} ->
-        {:error, reason}
-
-      {_output, _status} ->
-        File.rm(destination)
-        {:error, :normalization_failed}
     end
   end
 
@@ -151,7 +157,7 @@ defmodule NozomiStation.Railway.Clips do
   defp valid_duration?(duration, "pending") when duration in [nil, 0], do: true
 
   defp valid_duration?(duration, _status) do
-    is_integer(duration) and duration > 0
+    is_number(duration) and duration > 0
   end
 
   defp map_ok(items, fun) do
@@ -183,15 +189,29 @@ defmodule NozomiStation.Railway.Clips do
 
   defp ensure_destination(path) do
     if is_binary(path) and Path.extname(path) == ".m4a" do
-      File.mkdir_p!(Path.dirname(path))
-      :ok
+      File.mkdir_p(Path.dirname(path))
     else
       {:error, :invalid_destination}
     end
   end
 
+  defp ensure_distinct_files(source, destination) do
+    with {:ok, source_stat} <- File.stat(source),
+         {:ok, destination_stat} <- File.stat(destination) do
+      if source_stat.inode == destination_stat.inode and
+           source_stat.major_device == destination_stat.major_device do
+        {:error, :source_destination_alias}
+      else
+        :ok
+      end
+    else
+      {:error, :enoent} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   defp decode(path, runner) do
-    case runner.("ffmpeg", ["-v", "error", "-nostdin", "-i", path, "-f", "null", "-"]) do
+    case runner.("ffmpeg", ["-xerror", "-v", "error", "-nostdin", "-i", path, "-f", "null", "-"]) do
       {_output, 0} -> :ok
       _ -> {:error, :undecodable}
     end
@@ -257,7 +277,8 @@ defmodule NozomiStation.Railway.Clips do
 
   defp normalize_args(source, destination) do
     [
-      "-y",
+      "-n",
+      "-xerror",
       "-v",
       "error",
       "-nostdin",
