@@ -134,8 +134,9 @@ defmodule NozomiStation.Programming.Lastfm do
     end
   end
 
-  # Year comes from the album release date because track.getInfo has no release
-  # information; the wiki timestamp is the edit date, not the track year.
+  # https://www.last.fm/api/show/album.getInfo documents album.releasedate
+  # ("6 Apr 1999, 00:00"). This is the album year, not the wiki edit timestamp;
+  # responses without this optional field must leave the year absent.
   defp album_year(album, artist, key, request) when is_binary(album) do
     case get_json(request, "album.getInfo", [artist: artist, album: album], key) do
       %{"album" => %{"releasedate" => date}} -> release_year(date)

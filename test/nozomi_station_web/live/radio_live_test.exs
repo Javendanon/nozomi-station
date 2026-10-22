@@ -50,6 +50,8 @@ defmodule NozomiStationWeb.RadioLiveTest do
     assert has_element?(second, "#now-playing-title", "Blue Monday")
     assert has_element?(first, "#now-playing-album", "Substance")
     assert has_element?(first, "#now-playing-year", "1987")
+    assert has_element?(second, "#now-playing-year", "1987")
+    assert has_element?(second, "#now-playing-related li", "Joy Division")
     assert has_element?(first, "#now-playing-related li", "Joy Division")
     assert has_element?(first, "#now-playing-related li", "Depeche Mode")
     assert has_element?(first, "#now-playing-cover[src*='lastfm-img.freetls.fastly.net']")
@@ -57,8 +59,32 @@ defmodule NozomiStationWeb.RadioLiveTest do
     assert has_element?(first, "#listener-message", "Para quienes siguen despiertos")
   end
 
+  test "escapes provider text instead of rendering markup", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/")
+    markup = ~s|<img src=x onerror="alert(1)">|
+
+    send(
+      view.pid,
+      {:now_playing, %{title: "Track", artist: "Artist", related: [markup], summary: markup}}
+    )
+
+    assert has_element?(view, "#now-playing-related li", markup)
+    assert has_element?(view, "#now-playing-summary", markup)
+    refute has_element?(view, "#now-playing-related img")
+    refute has_element?(view, "#now-playing-summary img")
+  end
+
   test "hides missing optional metadata without removing the player", %{conn: conn} do
     {:ok, view, _html} = live(conn, "/")
+
+    send(
+      view.pid,
+      {:now_playing,
+       %{title: "Previous", artist: "Artist", year: 1987, related: ["Related Artist"]}}
+    )
+
+    assert has_element?(view, "#now-playing-year")
+    assert has_element?(view, "#now-playing-related")
 
     send(view.pid, {
       :now_playing,

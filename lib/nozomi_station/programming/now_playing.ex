@@ -23,7 +23,10 @@ defmodule NozomiStation.Programming.NowPlaying do
 
   @impl true
   def init(options) do
+    Process.flag(:trap_exit, true)
+
     state = %{
+      enrichment: nil,
       current: nil,
       path: nil,
       topic: Keyword.get(options, :topic, @topic),
@@ -47,15 +50,48 @@ defmodule NozomiStation.Programming.NowPlaying do
     {:noreply, state}
   end
 
+  def handle_info({ref, result}, %{enrichment: %Task{ref: ref}} = state) do
+    Process.demonitor(ref, [:flush])
+    state = %{state | enrichment: nil}
+
+    current =
+      case result do
+        {:ok, details} -> Map.merge(state.current, details)
+        {:error, _reason} -> state.current
+      end
+
+    if current == state.current do
+      {:noreply, state}
+    else
+      {:noreply, publish(%{state | current: current}, current)}
+    end
+  end
+
+  def handle_info({:DOWN, ref, :process, _pid, reason}, %{enrichment: %Task{ref: ref}} = state) do
+    Logger.warning("now_playing_enrichment_failed reason=#{inspect(reason)}")
+    {:noreply, %{state | enrichment: nil}}
+  end
+
+  def handle_info({ref, _result}, state) when is_reference(ref), do: {:noreply, state}
+
+  @impl true
+  def terminate(_reason, state) do
+    cancel_enrichment(state)
+    :ok
+  end
+
   defp poll(state) do
     case state.current_path.() do
       {:ok, path} when path == state.path ->
         state
 
       {:ok, nil} ->
+        state = cancel_enrichment(state)
         publish(%{state | current: nil, path: nil}, nil)
 
       {:ok, path} ->
+        state = cancel_enrichment(state)
+
         case state.lookup.(path) do
           nil -> state
           track -> publish_track(state, path, track)
@@ -68,14 +104,18 @@ defmodule NozomiStation.Programming.NowPlaying do
   end
 
   defp publish_track(state, path, track) do
-    current =
-      case state.enrich.(track) do
-        {:ok, details} -> Map.merge(track, details)
-        {:error, _reason} -> track
-      end
+    enrich = state.enrich
+    task = Task.Supervisor.async_nolink(__MODULE__.TaskSupervisor, fn -> enrich.(track) end)
 
-    Logger.info("now_playing_changed title=#{inspect(current.title)}")
-    publish(%{state | current: current, path: path}, current)
+    Logger.info("now_playing_changed title=#{inspect(track.title)}")
+    publish(%{state | current: track, path: path, enrichment: task}, track)
+  end
+
+  defp cancel_enrichment(%{enrichment: nil} = state), do: state
+
+  defp cancel_enrichment(state) do
+    Task.shutdown(state.enrichment, :brutal_kill)
+    %{state | enrichment: nil}
   end
 
   defp publish(state, current) do

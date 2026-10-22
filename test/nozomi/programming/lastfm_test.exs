@@ -68,6 +68,24 @@ defmodule NozomiStation.Programming.LastfmTest do
     assert similar[:params][:artist] == "New Order"
   end
 
+  test "uses the documented album release date, never the wiki publication date" do
+    # Release-date example: https://www.last.fm/api/show/album.getInfo
+    for {album, expected} <- [
+          {%{"releasedate" => "6 Apr 1999, 00:00"}, %{album: "Believe", year: 1999}},
+          {%{"wiki" => %{"published" => "6 Apr 1999, 00:00"}}, %{album: "Believe"}}
+        ] do
+      request =
+        stub(fn
+          "track.getInfo" -> {200, %{"track" => %{"album" => %{"title" => "Believe"}}}}
+          "album.getInfo" -> {200, %{"album" => album}}
+          "artist.getSimilar" -> {200, %{"similarartists" => %{"artist" => []}}}
+        end)
+
+      assert {:ok, details} = Lastfm.track_info("Cher", "Believe", request)
+      assert details == expected
+    end
+  end
+
   test "omits year and related when the provider has nothing to enrich with" do
     request =
       stub(fn
@@ -75,7 +93,8 @@ defmodule NozomiStation.Programming.LastfmTest do
         "artist.getSimilar" -> {200, %{"similarartists" => %{"artist" => []}}}
       end)
 
-    assert {:ok, %{}} = Lastfm.track_info("Artist", "Track", request)
+    assert {:ok, details} = Lastfm.track_info("Artist", "Track", request)
+    assert details == %{}
 
     methods = Enum.map(collect_requests(), & &1[:params][:method])
     assert methods == ["track.getInfo", "artist.getSimilar"]
@@ -107,7 +126,8 @@ defmodule NozomiStation.Programming.LastfmTest do
           {200, %{"similarartists" => %{"artist" => "unexpected"}}}
       end)
 
-    assert {:ok, %{album: "Album"}} = Lastfm.track_info("Artist", "Track", request)
+    assert {:ok, details} = Lastfm.track_info("Artist", "Track", request)
+    assert details == %{album: "Album"}
 
     malformed =
       stub(fn
@@ -121,7 +141,8 @@ defmodule NozomiStation.Programming.LastfmTest do
           {200, %{method => "unexpected"}}
       end)
 
-    assert {:ok, %{}} = Lastfm.track_info("Artist", "Track", malformed)
+    assert {:ok, details} = Lastfm.track_info("Artist", "Track", malformed)
+    assert details == %{}
   end
 
   test "keeps the track when the enrichment calls fail" do
@@ -134,11 +155,8 @@ defmodule NozomiStation.Programming.LastfmTest do
           {500, %{"error" => 8}}
       end)
 
-    assert {:ok, %{album: "Album"} = details} =
-             Lastfm.track_info("Artist", "Track", request)
-
-    refute Map.has_key?(details, :year)
-    refute Map.has_key?(details, :related)
+    assert {:ok, details} = Lastfm.track_info("Artist", "Track", request)
+    assert details == %{album: "Album"}
   end
 
   test "skips the provider when no API key is configured" do
@@ -146,8 +164,10 @@ defmodule NozomiStation.Programming.LastfmTest do
     Application.put_env(:nozomi_station, :lastfm_api_key, nil)
     on_exit(fn -> Application.put_env(:nozomi_station, :lastfm_api_key, key) end)
 
-    assert {:ok, %{}} =
+    assert {:ok, details} =
              Lastfm.track_info("Artist", "Track", fn _ -> flunk("unexpected network request") end)
+
+    assert details == %{}
   end
 
   test "fails softly when Last.fm is unavailable" do
