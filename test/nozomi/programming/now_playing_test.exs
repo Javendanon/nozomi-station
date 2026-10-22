@@ -32,13 +32,17 @@ defmodule NozomiStation.Programming.NowPlayingTest do
          topic: topic,
          poll_interval: 60_000,
          current_path: fn -> {:ok, track.file_path} end,
-         enrich: fn base -> {:ok, Map.put(base, :album, "Substance")} end}
+         enrich: fn base ->
+           {:ok, Map.merge(base, %{album: "Substance", year: 1987, related: ["Joy Division"]})}
+         end}
       )
 
     assert_receive {:now_playing, now_playing}
     assert now_playing.title == "Blue Monday"
     assert now_playing.artist == "New Order"
     assert now_playing.album == "Substance"
+    assert now_playing.year == 1987
+    assert now_playing.related == ["Joy Division"]
     assert now_playing.listener_message == "Para el viaje nocturno"
     assert NowPlaying.current(pid) == now_playing
   end

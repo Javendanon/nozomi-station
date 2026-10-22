@@ -55,7 +55,12 @@ defmodule NozomiStation.Programming.Lastfm do
 
     case request.(options) do
       {:ok, %Req.Response{status: 200, body: %{"track" => track}}} ->
-        {:ok, track_details(track)}
+        details = track_details(track)
+
+        {:ok,
+         details
+         |> put_detail(:year, album_year(details[:album], artist, key, request))
+         |> put_detail(:related, related_artists(artist, key, request))}
 
       _ ->
         Logger.warning("lastfm_request_failed method=track.getInfo")
@@ -64,20 +69,26 @@ defmodule NozomiStation.Programming.Lastfm do
   end
 
   defp fetch(request, method, params) do
+    request
+    |> get_json(method, params, api_key())
+    |> tracks()
+  end
+
+  defp get_json(request, method, params, key) do
     options =
       [
         method: :get,
         url: @endpoint,
-        params: [method: method, api_key: api_key(), format: "json"] ++ params
+        params: [method: method, api_key: key, format: "json"] ++ params
       ] ++ @request_options
 
     case request.(options) do
-      {:ok, %Req.Response{status: 200, body: body}} ->
-        tracks(body)
+      {:ok, %Req.Response{status: 200, body: body}} when is_map(body) ->
+        body
 
       _ ->
         Logger.warning("lastfm_request_failed method=#{method}")
-        []
+        %{}
     end
   end
 
@@ -122,6 +133,45 @@ defmodule NozomiStation.Programming.Lastfm do
       _ -> false
     end
   end
+
+  # Year comes from the album release date because track.getInfo has no release
+  # information; the wiki timestamp is the edit date, not the track year.
+  defp album_year(album, artist, key, request) when is_binary(album) do
+    case get_json(request, "album.getInfo", [artist: artist, album: album], key) do
+      %{"album" => %{"releasedate" => date}} -> release_year(date)
+      _ -> nil
+    end
+  end
+
+  defp album_year(_album, _artist, _key, _request), do: nil
+
+  defp release_year(date) when is_binary(date) do
+    case Regex.run(~r/\b\d{4}\b/, date) do
+      [year] -> String.to_integer(year)
+      _ -> nil
+    end
+  end
+
+  defp release_year(_date), do: nil
+
+  defp related_artists(artist, key, request) when is_binary(artist) do
+    case get_json(request, "artist.getSimilar", [artist: artist, limit: 5], key) do
+      %{"similarartists" => %{"artist" => artists}} when is_list(artists) ->
+        artists
+        |> Enum.flat_map(fn
+          %{"name" => name} when is_binary(name) and name != "" -> [name]
+          _ -> []
+        end)
+        |> Enum.reject(&(String.downcase(&1) == String.downcase(artist)))
+        |> Enum.uniq()
+        |> Enum.take(5)
+
+      _ ->
+        []
+    end
+  end
+
+  defp related_artists(_artist, _key, _request), do: []
 
   defp tags(values) when is_list(values) do
     values
