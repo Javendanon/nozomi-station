@@ -49,7 +49,7 @@ export const RadioPlayer = {
     this.connecting = false
     this.button.hidden = false
     this.button.disabled = true
-    this.button.ariaLabel = "Live broadcast"
+    this.button.ariaLabel = "Emisión en vivo"
     this.button.dataset.live = "true"
   },
 
@@ -62,7 +62,7 @@ export const RadioPlayer = {
     this.connected = false
     this.connecting = false
     this.button.disabled = false
-    this.button.ariaLabel = "Join the train and listen live"
+    this.button.ariaLabel = "Subir al tren y escuchar en vivo"
     this.button.dataset.live = "false"
   },
 
@@ -85,7 +85,7 @@ export const RadioPlayer = {
     } catch (_error) {
       if (attempt.signal.aborted) return
       this.markDisconnected()
-      this.button.ariaLabel = "Broadcast unavailable; retry"
+      this.button.ariaLabel = "Emisión no disponible; reintentar"
     }
   },
 

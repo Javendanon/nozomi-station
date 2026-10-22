@@ -80,7 +80,7 @@ test("keeps live playback across patches and reconnects after the stream ends", 
 
   assert.equal(button.hidden, false)
   assert.equal(button.disabled, true)
-  assert.equal(button.ariaLabel, "Live broadcast")
+  assert.equal(button.ariaLabel, "Emisión en vivo")
   assert.equal(button.dataset.live, "true")
 
   hook.el.dataset.live = "false"
@@ -131,6 +131,32 @@ test("restores the join control when a requested stream never starts playing", a
   await button.trigger("click")
   assert.equal(streamAudio.playCount, 2)
 
+  hook.destroyed()
+})
+
+test("live playback cancels the join timeout instead of disconnecting later", async (t) => {
+  t.mock.timers.enable({apis: ["setTimeout"]})
+  const button = eventTarget({dataset: {}})
+  const streamAudio = eventTarget(audio(true))
+  const elements = {"#join-live": button, "#live-audio": streamAudio}
+  const hook = {
+    ...RadioPlayer,
+    joinTimeoutMs: 100,
+    el: {dataset: {stream: "/hls/live.m3u8"}, querySelector: selector => elements[selector]},
+  }
+
+  hook.mounted()
+  await button.trigger("click")
+  await streamAudio.trigger("playing")
+  assert.equal(button.dataset.live, "true")
+
+  t.mock.timers.tick(1_000)
+
+  assert.equal(hook.connected, true)
+  assert.equal(button.disabled, true)
+  assert.equal(button.dataset.live, "true")
+  assert.equal(streamAudio.paused, undefined)
+  assert.equal(streamAudio.resetCount, undefined)
   hook.destroyed()
 })
 

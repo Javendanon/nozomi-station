@@ -4,8 +4,10 @@
 // reload, reduced motion, and the Last.fm card. No dependencies: Node's global
 // fetch and WebSocket plus the locally installed Chrome.
 //
-// Separate processes avoid hidden-tab throttling. Suspended playback clocks
-// still produce INCOMPLETE, never a playback pass.
+// Separate processes avoid hidden-tab throttling. A player that buffers without
+// advancing its clock is not playback, so neither check can pass on a frozen clock.
+// The live manifest is sampled next to the clocks to tell a stalled encoder from a
+// stalled client.
 //
 // Usage: node scripts/verify-player-browser.mjs [--url URL] [--out FILE] [--evidence DIR]
 
@@ -31,6 +33,17 @@ export const lastfmRendered = state => {
   return Boolean(state.album?.trim() && state.tags?.length && state.summary?.trim() &&
     cover.protocol === "https:" && cover.hostname === "lastfm-img.freetls.fastly.net" &&
     state.coverComplete && state.coverWidth > 0 && state.coverHeight > 0)
+}
+
+// A buffered, unpaused element is not playback: both clocks must advance between
+// two samples taken at least a second apart.
+export const liveAudioStatus = (samples, elapsedSeconds) => {
+  if (samples.length < 2) return "inconclusive"
+  if (samples.some(pair => pair.some(state =>
+    state.live !== "true" || state.paused !== false || !(state.bufferedEnd > 0)))) return "fail"
+  const advancing = samples.slice(1).every((pair, index) => pair.every((state, windowIndex) =>
+    state.currentTime > samples[index][windowIndex].currentTime))
+  return advancing && elapsedSeconds >= 1 ? "pass" : "inconclusive"
 }
 
 export const boundaryStatus = (samples, elapsedSeconds, reloads) => {
@@ -69,6 +82,39 @@ const chromeBinary =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+// The playlist keeps growing even when a browser stops consuming it, so sampling it
+// separates a stalled client from a stalled encoder.
+// The in-page fetch keeps the browser cache semantics that hls.js sees, so a stale
+// manifest behind correct server-side output becomes visible.
+const pagePlaylistState = (session, url) => session.eval(`fetch(${JSON.stringify(url)})
+  .then(async (response) => ({
+    status: response.status,
+    cacheControl: response.headers.get("cache-control"),
+    text: await response.text(),
+  }))
+  .then(({status, cacheControl, text}) => ({
+    status,
+    cacheControl,
+    mediaSequence: Number(text.match(/^#EXT-X-MEDIA-SEQUENCE:(\\d+)/m)?.[1] ?? -1),
+    segments: (text.match(/^#EXTINF/gm) ?? []).length,
+  }))`)
+
+const playlistState = async (url) => {
+  try {
+    const master = await (await fetch(url, {cache: "no-store"})).text()
+    const variant = master.split(/\r?\n/).find((line) => line && !line.startsWith("#"))
+    const mediaUrl = variant ? new URL(variant, url).href : url
+    const text = variant ? await (await fetch(mediaUrl, {cache: "no-store"})).text() : master
+    return {
+      mediaUrl,
+      mediaSequence: Number(text.match(/^#EXT-X-MEDIA-SEQUENCE:(\d+)/m)?.[1] ?? -1),
+      segments: (text.match(/^#EXTINF/gm) ?? []).length,
+    }
+  } catch (error) {
+    return {error: error.message}
+  }
+}
 
 const waitFor = async (check, timeout, label) => {
   const started = Date.now()
@@ -200,6 +246,10 @@ const startWindow = async (port, userDataDir) => {
       "--disable-gpu",
       "--no-first-run",
       "--no-default-browser-check",
+      // Headed windows get occluded and frozen by the OS without these.
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--disable-background-timer-throttling",
       "--autoplay-policy=no-user-gesture-required",
       "--window-size=1440,900",
       `--user-data-dir=${userDataDir}`,
@@ -313,35 +363,43 @@ const main = async () => {
       await window.eval("document.querySelector('#join-live').click()")
     }
 
-    const joined = await waitFor(
-      async () => {
-        const current = await states()
-        return current.every(
-          (state) =>
-            state.live === "true" &&
-            state.paused === false &&
-            state.currentTime > 0 &&
-            state.bufferedEnd > 0,
-        )
-          ? current
-          : null
-      },
-      30_000,
-      "live audio in both windows",
-    )
+    const audioSamples = []
+    let audioStatus = "inconclusive"
+
+    try {
+      // Joining is only a precondition; the two samples below decide the check.
+      await waitFor(
+        async () => (await states()).every((state) =>
+          state.live === "true" && state.paused === false &&
+          state.currentTime > 0 && state.bufferedEnd > 0),
+        30_000,
+        "a joined, buffered player in both windows",
+      )
+      audioSamples.push(await states())
+      await sleep(1_200)
+      audioSamples.push(await states())
+      audioStatus = liveAudioStatus(audioSamples, 1.2)
+    } catch { /* The samples below keep the suspended clocks visible. */ }
 
     record(
       "audio_live",
-      "Joining starts audio in both windows.",
-      "pass",
-      joined
-        .map((state) => `t=${state.currentTime}s buffered=${state.bufferedEnd}s rs=${state.readyState}`)
-        .join(" "),
+      "Joining advances the playback clock in both windows.",
+      audioStatus,
+      audioSamples.length
+        ? audioSamples.slice(-2).map((sample, index) =>
+            `sample${index}: ` + sample.map((window) =>
+              `t=${window.currentTime}s buffered=${window.bufferedEnd}s live=${window.live}`).join(", "),
+          ).join(" | ")
+        : "no sample pair collected: the player never reported a joined, buffered stream",
     )
 
     const loadsBefore = windows.map(window => window.loads)
     const samples = []
     let boundary = null
+    const playlistUrl = new URL(
+      streamUrl ?? await first.session.eval("document.querySelector('#radio-player').dataset.stream"),
+      pageUrl,
+    ).href
 
     try {
       boundary = await waitFor(
@@ -365,10 +423,15 @@ const main = async () => {
     if (boundary) {
       // Observe beyond metadata arrival and the six-segment HLS buffer window.
       const postBoundary = [boundary]
+      const mediaUrl = (await playlistState(playlistUrl)).mediaUrl
+      const playlists = [await playlistState(playlistUrl)]
+      const pagePlaylists = [await pagePlaylistState(first.session, mediaUrl)]
       const observedAt = Date.now()
       for (let sample = 0; sample < 15; sample++) {
         await sleep(1_000)
         postBoundary.push(await states())
+        playlists.push(await playlistState(playlistUrl))
+        pagePlaylists.push(await pagePlaylistState(first.session, mediaUrl))
       }
       const elapsedSeconds = (Date.now() - observedAt) / 1_000
       const reloads = windows.map((window, index) => window.loads - loadsBefore[index])
@@ -379,7 +442,7 @@ const main = async () => {
         "natural_boundary",
         "Both playback clocks advance after a natural boundary without reloading.",
         uninterrupted ? status : "fail",
-        {elapsedSeconds, reloads, postBoundary},
+        {elapsedSeconds, reloads, playlistUrl, mediaUrl, playlists, pagePlaylists, postBoundary},
       )
       boundary = postBoundary.at(-1)
 

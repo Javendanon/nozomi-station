@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import {boundaryStatus, completionVerdict, lastfmRendered} from "../../scripts/verify-player-browser.mjs"
+import {boundaryStatus, completionVerdict, lastfmRendered, liveAudioStatus} from "../../scripts/verify-player-browser.mjs"
 
 const card = {
   marker: "kept", live: "true", paused: false, currentTime: 10,
@@ -22,6 +22,24 @@ test("mandatory skipped, inconclusive or absent checks cannot close manual verif
     assert.equal(completionVerdict(checks.filter(check => check.id !== id)), "INCOMPLETE")
   }
   assert.equal(completionVerdict([{id: "browser_run", status: "fail"}]), "FAIL")
+})
+
+test("joining only counts as live audio when both clocks actually advance", () => {
+  const playing = {...card, currentTime: 0.018, bufferedEnd: 5.921, readyState: 4}
+  const before = [playing, playing]
+  const advancing = [
+    {...playing, currentTime: 1.4},
+    {...playing, currentTime: 2.2},
+  ]
+
+  assert.equal(liveAudioStatus([before, [playing, playing]], 1.2), "inconclusive")
+  assert.equal(liveAudioStatus([before, [advancing[0], playing]], 1.2), "inconclusive")
+  assert.equal(liveAudioStatus([before, advancing], 1.2), "pass")
+  assert.equal(liveAudioStatus([before, advancing], 0.2), "inconclusive")
+  assert.equal(liveAudioStatus([before], 5), "inconclusive")
+  for (const broken of [{live: "false"}, {paused: true}, {bufferedEnd: 0}]) {
+    assert.equal(liveAudioStatus([before, [{...advancing[0], ...broken}, advancing[1]]], 1.2), "fail")
+  }
 })
 
 test("the boundary requires both playback clocks after the transition, not buffer growth", () => {

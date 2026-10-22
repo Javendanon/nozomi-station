@@ -23,11 +23,12 @@ metrics:
 release: null
 handoff:
   next_skill: verify-work
-  last_step_completed: NS02 review rework with 71 Elixir tests, 10 Node tests and isolated browser evidence.
-  context: "PR #4 is merged. NS02 must remain incomplete until real Last.fm rendering and human listening are recorded. Headless playback clocks were suspended after the natural boundary."
+  last_step_completed: NS02 review rework with 71 Elixir tests, 12 Node tests and isolated browser evidence.
+  context: "PR #4 is merged and NS02 stays blocked, not closed. The audio_live gate now requires advancing clocks, the Spanish accessibility labels are restored, and the headless playback stall is reproduced and narrowed to the client because the encoder and the manifest cache are both excluded."
   required_reading:
     - specs/verifications/e05s01-verify.yaml
     - specs/verifications/e05s01-manual.json
   open_decisions:
     - Obtain LASTFM_API_KEY for the explicit real-provider browser check.
     - Record a headed browser run with advancing clocks and human auditory confirmation.
+    - Isolate the client-side stall that freezes both clocks a few seconds after joining in headless muted Chrome.
