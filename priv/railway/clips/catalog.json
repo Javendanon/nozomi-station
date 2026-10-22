@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "clips": [
+    {
+      "id": "boarding-announcement",
+      "kind": "announcement",
+      "origin": "pending contribution: no recording selected",
+      "duration_seconds": null,
+      "file": "boarding-announcement.m4a",
+      "status": "pending"
+    },
+    {
+      "id": "departure-melody",
+      "kind": "melody",
+      "origin": "pending contribution: no recording selected",
+      "duration_seconds": null,
+      "file": "departure-melody.m4a",
+      "status": "pending"
+    },
+    {
+      "id": "platform-ambience",
+      "kind": "ambience",
+      "origin": "pending contribution: no recording selected",
+      "duration_seconds": null,
+      "file": "platform-ambience.m4a",
+      "status": "pending"
+    }
+  ]
+}
