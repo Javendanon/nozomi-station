@@ -40,57 +40,46 @@ defmodule NozomiStation.Programming.LiquidsoapClientTest do
     Task.await(server)
   end
 
-  test "finds the request playing outside both pending queues" do
-    command = fn
-      "request.all" -> {:ok, ["3 4 5"]}
-      "requested.queue" -> {:ok, []}
-      "complementary.queue" -> {:ok, ["4 5"]}
-      "request.metadata 3" -> {:ok, [~s(filename="/media/c3.m4a"), ~s(status="ready")]}
-    end
+  test "reads the current path from output metadata through the local protocol" do
+    server = server(["/media/c3.m4a\r\nEND\r\nBye!\r\n"])
 
-    assert {:ok, "tmp/media/c3.m4a"} = LiquidsoapClient.current_path(command, [])
+    assert {:ok, "tmp/media/c3.m4a"} = LiquidsoapClient.current_path()
+    assert_receive {:control_command, "radio.current_path\nquit\n"}
+    Task.await(server)
   end
 
-  test "returns no current path while every request remains queued" do
-    command = fn
-      "request.all" -> {:ok, ["8 9"]}
-      "requested.queue" -> {:ok, ["8"]}
-      "complementary.queue" -> {:ok, ["9"]}
+  test "follows output metadata from a newer request back to an older complementary track" do
+    paths = start_supervised!({Agent, fn -> ["r3", "r3", "c2", "c2"] end})
+
+    command = fn "radio.current_path" ->
+      Agent.get_and_update(paths, fn [path | rest] ->
+        {{:ok, ["/media/#{path}.m4a"]}, rest}
+      end)
     end
 
-    assert {:ok, nil} = LiquidsoapClient.current_path(command, [])
+    assert Enum.map(1..4, fn _ -> LiquidsoapClient.current_path(command, []) end) == [
+             {:ok, "tmp/media/r3.m4a"},
+             {:ok, "tmp/media/r3.m4a"},
+             {:ok, "tmp/media/c2.m4a"},
+             {:ok, "tmp/media/c2.m4a"}
+           ]
   end
 
-  test "handles a current request that finishes during metadata lookup" do
-    base = fn
-      "request.all" -> {:ok, ["8"]}
-      "requested.queue" -> {:ok, []}
-      "complementary.queue" -> {:ok, []}
-    end
-
+  test "returns no current path for the emergency source" do
     assert {:ok, nil} =
-             LiquidsoapClient.current_path(
-               fn
-                 "request.metadata 8" -> {:ok, ["No such request."]}
-                 command -> base.(command)
-               end,
-               []
-             )
-
-    assert {:error, :closed} =
-             LiquidsoapClient.current_path(
-               fn
-                 "request.metadata 8" -> {:error, :closed}
-                 command -> base.(command)
-               end,
-               []
-             )
+             LiquidsoapClient.current_path(fn "radio.current_path" -> {:ok, []} end, [])
   end
 
-  test "rejects malformed current request IDs" do
-    command = fn "request.all" -> {:ok, ["8 injected"]} end
+  test "propagates output control failures" do
+    assert {:error, :closed} =
+             LiquidsoapClient.current_path(fn "radio.current_path" -> {:error, :closed} end, [])
+  end
 
-    assert {:error, :invalid_control_response} = LiquidsoapClient.current_path(command, [])
+  test "rejects malformed or unsafe output paths" do
+    for response <- [["/media/a.m4a", "/media/b.m4a"], ["/outside/c.m4a"], ["/media/../c.m4a"]] do
+      assert {:error, _reason} =
+               LiquidsoapClient.current_path(fn "radio.current_path" -> {:ok, response} end, [])
+    end
   end
 
   test "scheduler worker delegates through the real control boundary" do
