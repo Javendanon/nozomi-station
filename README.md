@@ -91,7 +91,50 @@ bash scripts/verify-hls-sync.sh
 bash scripts/verify-programming-priority.sh
 ```
 
-La integración HLS comprueba el códec, la continuidad del manifiesto y que dos clientes simultáneos compartan la misma ventana de emisión.
+### Player browser evidence
+
+Run the offline regression checks:
+
+```bash
+npm --prefix assets test
+```
+
+Collect local browser evidence:
+
+```bash
+bash scripts/verify-player-manual.sh
+```
+
+The script requires Docker, Chrome, Node with built-in WebSocket support, and `ffmpeg`.
+It uses a disposable Compose project, tmpfs PostgreSQL storage, private ports, and a separate Liquidsoap instance.
+The application uses the `player_manual` database with Oban queues and plugins disabled.
+Existing development services, databases, queues, and HLS output remain unchanged.
+The script does not load `.env`.
+
+Results go to `specs/verifications/e05s01-manual.json` and `specs/verifications/evidence/`.
+Chrome checks desktop and mobile viewports, two consistent cards, reduced motion, and playback clocks for 15 seconds after metadata changes.
+Mobile emulation is not a physical-device test.
+A suspended playback clock produces an inconclusive result, not a pass.
+Exit codes are `0` for complete, `1` for failure, and `2` for incomplete evidence.
+The recorder always leaves auditory confirmation pending because it cannot establish what a human hears.
+
+For real Last.fm rendering, export `LASTFM_API_KEY` and explicitly enable provider access:
+
+```bash
+PLAYER_HEADED=1 PLAYER_REAL_LASTFM=1 bash scripts/verify-player-manual.sh
+```
+
+This manual integration can access Last.fm and its cover CDN. Automated tests never use real providers.
+The generated tones use metadata for New Order's `Blue Monday` and `Bizarre Love Triangle`.
+Override metadata with `PLAYER_FIRST_TITLE`, `PLAYER_FIRST_ARTIST`, `PLAYER_SECOND_TITLE`, and `PLAYER_SECOND_ARTIST` when necessary.
+The browser receives the matching expected titles.
+An album, tags, summary, and a fully loaded allowlisted cover are required.
+The generated audio is not the named commercial recording.
+
+Listen across the natural boundary in the audible windows without reloading.
+Record the browser, date, device, and listening result in `specs/verifications/e05s01-verify.yaml`.
+Retain `manual.passed: false` and `gaps.closed: false` until all required checks have evidence.
+Do not treat historical API responses or screenshots as proof of uninterrupted audio.
 
 El CI automático ejecuta las pruebas rápidas en cada PR. Las integraciones Docker de HLS y prioridad se ejecutan localmente antes de abrir o actualizar el PR; GitHub Actions las conserva como un workflow manual para la verificación final de una release.
 

@@ -5,6 +5,9 @@ import {connectToLiveStream, RadioPlayer, VolumeControl} from "./radio_player.mj
 
 const audio = nativeHls => ({
   canPlayType: () => nativeHls ? "maybe" : "",
+  pause() { this.paused = true },
+  removeAttribute(name) { delete this[name] },
+  load() { this.resetCount = (this.resetCount || 0) + 1 },
   play() {
     this.played = true
     this.playCount = (this.playCount || 0) + 1
@@ -72,7 +75,7 @@ test("keeps live playback across patches and reconnects after the stream ends", 
   hook.mounted()
   await button.trigger("click")
   assert.equal(streamAudio.played, true)
-  hook.hls = {destroy: () => destroyed++}
+  hook.attempt.signal.addEventListener("abort", () => destroyed++)
   await streamAudio.trigger("playing")
 
   assert.equal(button.hidden, false)
@@ -101,6 +104,129 @@ test("keeps live playback across patches and reconnects after the stream ends", 
   assert.equal(streamAudio.listensTo("playing"), false)
   assert.equal(streamAudio.listensTo("ended"), false)
   assert.equal(streamAudio.listensTo("error"), false)
+})
+
+test("restores the join control when a requested stream never starts playing", async () => {
+  const button = eventTarget({dataset: {}, disabled: false})
+  const streamAudio = eventTarget(audio(true))
+  const elements = {"#join-live": button, "#live-audio": streamAudio}
+  const hook = {
+    ...RadioPlayer,
+    joinTimeoutMs: 0,
+    el: {dataset: {stream: "/hls/live.m3u8"}, querySelector: selector => elements[selector]},
+  }
+
+  hook.mounted()
+  await button.trigger("click")
+  assert.equal(streamAudio.playCount, 1)
+  assert.equal(hook.connecting, true)
+  assert.equal(button.disabled, true)
+
+  await new Promise(resolve => setTimeout(resolve, 0))
+
+  assert.equal(hook.connecting, false)
+  assert.equal(button.disabled, false)
+  assert.equal(button.dataset.live, "false")
+
+  await button.trigger("click")
+  assert.equal(streamAudio.playCount, 2)
+
+  hook.destroyed()
+})
+
+test("live playback cancels the join timeout instead of disconnecting later", async (t) => {
+  t.mock.timers.enable({apis: ["setTimeout"]})
+  const button = eventTarget({dataset: {}})
+  const streamAudio = eventTarget(audio(true))
+  const elements = {"#join-live": button, "#live-audio": streamAudio}
+  const hook = {
+    ...RadioPlayer,
+    joinTimeoutMs: 100,
+    el: {dataset: {stream: "/hls/live.m3u8"}, querySelector: selector => elements[selector]},
+  }
+
+  hook.mounted()
+  await button.trigger("click")
+  await streamAudio.trigger("playing")
+  assert.equal(button.dataset.live, "true")
+
+  t.mock.timers.tick(1_000)
+
+  assert.equal(hook.connected, true)
+  assert.equal(button.disabled, true)
+  assert.equal(button.dataset.live, "true")
+  assert.equal(streamAudio.paused, undefined)
+  assert.equal(streamAudio.resetCount, undefined)
+  hook.destroyed()
+})
+
+test("ignores an abandoned native join rejection without clearing the retry timeout", async (t) => {
+  t.mock.timers.enable({apis: ["setTimeout"]})
+  const pending = []
+  const button = eventTarget({dataset: {}})
+  const streamAudio = eventTarget({
+    ...audio(true),
+    play: () => new Promise((resolve, reject) => pending.push({resolve, reject})),
+  })
+  const elements = {"#join-live": button, "#live-audio": streamAudio}
+  const hook = {
+    ...RadioPlayer,
+    joinTimeoutMs: 100,
+    el: {dataset: {stream: "/hls/live.m3u8"}, querySelector: selector => elements[selector]},
+  }
+
+  hook.mounted()
+  const first = button.trigger("click")
+  t.mock.timers.tick(100)
+  assert.equal(hook.attempt.signal.aborted, true)
+  assert.equal(streamAudio.paused, true)
+  assert.equal(streamAudio.src, undefined)
+  assert.equal(streamAudio.resetCount, 1)
+  streamAudio.trigger("playing")
+  assert.equal(button.dataset.live, "false")
+
+  const second = button.trigger("click")
+  const retry = hook.attempt
+  pending[0].reject(new Error("The old source was replaced"))
+  await first
+  assert.equal(hook.attempt, retry)
+  assert.equal(hook.connecting, true)
+  assert.equal(button.disabled, true)
+  t.mock.timers.tick(100)
+  assert.equal(retry.signal.aborted, true)
+  assert.equal(button.disabled, false)
+  assert.equal(streamAudio.resetCount, 2)
+
+  const third = button.trigger("click")
+  pending[1].resolve()
+  await second
+  assert.equal(hook.connecting, true)
+  pending[2].resolve()
+  await third
+  streamAudio.trigger("playing")
+  assert.equal(button.dataset.live, "true")
+  hook.destroyed()
+})
+
+test("ignores hls.js callbacks after abandoning a join", async () => {
+  class FakeHls {
+    static Events = {MANIFEST_PARSED: "manifest", ERROR: "error"}
+    static isSupported() { return true }
+    on(event, callback) { this[event] = callback }
+    attachMedia() {}
+    loadSource() {}
+    destroy() { this.destroyed = true }
+  }
+  const controller = new AbortController()
+  const element = audio(false)
+  let errors = 0
+  const hls = await connectToLiveStream(element, "/hls/live.m3u8", FakeHls, () => errors++, controller.signal)
+  controller.abort()
+  hls.manifest()
+  hls.error(null, {fatal: true})
+  assert.equal(hls.destroyed, true)
+  assert.equal(element.played, undefined)
+  assert.equal(errors, 0)
 })
 
 test("moves the Shinkansen volume control in one-percent steps without reconnecting", () => {

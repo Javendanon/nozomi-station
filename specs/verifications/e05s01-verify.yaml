@@ -2,7 +2,7 @@ story_id: e05s01
 verified_at: "2026-08-16T19:15:21Z"
 verifier: verify-work
 risk: P0
-status: ready_for_human_review
+status: blocked_on_human_and_provider
 phases:
   cold_start:
     passed: true
@@ -13,7 +13,7 @@ phases:
   tests:
     passed: true
     elixir: 71
-    javascript: 4
+    javascript: 10
     network_requests: 0
   coverage:
     passed: true
@@ -47,20 +47,187 @@ phases:
     report: specs/security/REVIEW.md
   manual:
     passed: false
-    completed:
-      - Desktop visual hierarchy and Neo-Tokyo scene reviewed from a user screenshot.
-      - Volume smoothness, stable placement, and revised Shinkansen design accepted by the user.
-      - Join/live labels and redundant status text refined from user feedback.
-      - Missing local tracks traced to a stopped Liquidsoap verification container and restored.
-    pending:
-      - Review the ready PR on desktop and mobile.
-      - Confirm one natural track boundary keeps audio live without refreshing.
-      - Confirm two windows, reduced motion, and real Last.fm rendering.
+    status: blocked_on_human_and_provider
+    closes_card: false
+    recorded_at: "2026-10-22T18:58:53Z"
+    browser: Chrome/155.0.8059.85 (headless, muted, mobile viewport emulation)
+    command: bash scripts/verify-player-manual.sh
+    exit_code: 2
+    artifact: specs/verifications/e05s01-manual.json
+    scope: >-
+      Supporting browser evidence only. Human auditory confirmation and a real Last.fm
+      rendering run are still outstanding, so this branch does not close the card.
+    isolation: >-
+      Disposable Compose project, tmpfs PostgreSQL, player_manual database, private
+      Liquidsoap ports and HLS subdirectory. Oban queues and plugins disabled before app
+      start. Automated tests and this run used no real network provider.
+    evidence:
+      desktop: specs/verifications/evidence/e05s01-player-desktop.png
+      mobile: specs/verifications/evidence/e05s01-player-mobile.png
+    checklist:
+      - step: Open the station in a 1440x900 desktop window
+        result: pass
+        note: >-
+          Card, join control and volume control render with 0px horizontal overflow.
+          Screenshot inspected.
+      - step: Open the station in a 390x844 mobile viewport
+        result: pass
+        note: >-
+          0px horizontal overflow, card bottom 590.25px above volume top 602.25px.
+          Screenshot inspected.
+      - step: Join the stream in two windows
+        result: pass
+        note: >-
+          Both windows reached a joined, buffered player and their clocks strictly advanced
+          between two samples 1.2s apart: 0.085s to 1.222s and 0.135s to 1.269s. The
+          previous pass for this step came from a gate that accepted a frozen clock and is
+          superseded.
+      - step: Observe playback after a natural track boundary
+        result: inconclusive
+        note: >-
+          Both cards moved from Blue Monday to Bizarre Love Triangle with 0 reloads and the
+          page marker intact, but both clocks sat frozen at 5.864s with readyState 2 for
+          15.378s. The Liquidsoap media playlist kept publishing (media sequence 31 to 39)
+          and the page itself read the same fresh sequence as Node, so neither a stalled
+          encoder nor HTTP caching of the manifest explains the freeze.
+      - step: Enable prefers-reduced-motion
+        result: pass
+        note: >-
+          Rail and wave animation names became none and the join transition duration became
+          0s.
+      - step: Render real Last.fm enrichment
+        result: pending
+        blocked_by: provider
+        note: >-
+          No LASTFM_API_KEY is available in this environment. No real-provider request was
+          attempted, so field-level API evidence from earlier runs is not a browser
+          rendering result.
+      - step: Listen across the natural boundary
+        result: pending
+        blocked_by: human
+        note: >-
+          Headless muted playback cannot satisfy an auditory check, and headed Chrome in
+          this session cannot be driven (see reproducible failures below).
+    blocking_items:
+      - id: lastfm_render
+        owner: human
+        needs: LASTFM_API_KEY
+        acceptance: >-
+          Album, tags, summary and a loaded lastfm-img.freetls.fastly.net cover for the
+          seeded New Order tracks.
+      - id: auditory_boundary
+        owner: human
+        needs: a desktop browser window with working audio output
+        acceptance: >-
+          Continuous audio heard across the boundary, recorded with browser, date and
+          device.
+      - id: natural_boundary
+        owner: human
+        needs: headed run on a display-attached machine
+        acceptance: >-
+          Both playback clocks advance after the boundary in an unattended window. The
+          headless stall must be re-tested headed before it is called an environment
+          limitation.
+    handoff:
+      - step: Provide a Last.fm key without committing it
+        command: export LASTFM_API_KEY=... (never write it into the repository)
+      - step: Reproduce the Last.fm and auditory checks on a desktop session
+        command: PLAYER_REAL_LASTFM=1 PLAYER_HEADED=1 bash scripts/verify-player-manual.sh
+      - step: Read the verdict and the per-check detail
+        command: node -e 'console.log(require("./specs/verifications/e05s01-manual.json").verdict)'
+      - step: Confirm the headless stall in a headed window
+        command: >-
+          PLAYER_HEADED=1 bash scripts/verify-player-manual.sh, then compare currentTime in
+          both windows after the track change with the playlist media sequence recorded in
+          natural_boundary.detail.
+      - step: Record the human listening result beside the generated evidence
+        command: >-
+          Add browser, date, device and the observed continuity to this file, and set
+          manual.passed plus gaps.closed only when every check is pass.
+    regressions:
+      fixed:
+        - finding: >-
+            The audio_live gate passed a player that buffered but never advanced, so a frozen
+            0.018s clock was recorded as live playback.
+          fix: >-
+            Sample both windows twice at least a second apart and pass only when currentTime
+            strictly increases in both while the player stays live, unpaused and buffered;
+            otherwise record inconclusive.
+          test: assets/js/verify_player_browser.test.mjs
+        - finding: >-
+            The verification recorder accepted suspended clocks, mandatory skips and unloaded
+            Last.fm covers as successful verification.
+          fix: >-
+            Require sustained post-boundary clock advancement, all mandatory results, an
+            album and a loaded allowlisted image.
+          test: assets/js/verify_player_browser.test.mjs
+        - finding: >-
+            Join-timeout cancellation in markLive was untested, so a regression could
+            disconnect a playing stream when the timer fired.
+          fix: >-
+            Cover the mocked-timer path where a playing event must cancel the pending join
+            timeout.
+          test: assets/js/radio_player.test.mjs
+        - finding: >-
+            Player accessibility labels were changed to English in an otherwise Spanish UI.
+          fix: >-
+            Restore "Emisión en vivo", "Subir al tren y escuchar en vivo" and "Emisión no
+            disponible; reintentar" to match the template.
+          test: assets/js/radio_player.test.mjs
+      reproducible:
+        - finding: >-
+            In headless muted Chrome both audio elements freeze a few seconds after joining
+            and never resume, while the encoder keeps publishing new segments.
+          reproduce: >-
+            Run bash scripts/verify-player-manual.sh on this host with Chrome/155.0.8059.85
+            and read natural_boundary.detail.
+          evidence: >-
+            The artifact keeps all 16 paired post-boundary samples plus the Node and in-page
+            playlist sequences for every sample; media sequence advanced while currentTime
+            stayed between 5.864s and 5.902s with readyState 2.
+          ruled_out: >-
+            A stalled encoder and stale manifest caching, both contradicted by the recorded
+            playlist sequences.
+          classification: >-
+            Client-side playback stall, reproducible and not isolated to the track boundary.
+            Relabelled from "environment or playback issue not isolated" because the encoder
+            and HTTP cache are now excluded; the exact trigger is still open and must be
+            re-tested headed.
+        - finding: Headed Chrome cannot be driven in this session.
+          reproduce: >-
+            Run PLAYER_HEADED=1 bash scripts/verify-player-manual.sh. CDP calls fail with
+            "Runtime.evaluate timed out" and "Page.captureScreenshot timed out" even with
+            backgrounding and occlusion flags disabled.
+          classification: >-
+            Host limitation. Headed evidence needs a display-attached, attended machine, so
+            no audible-run claim is made here.
+    pending_human:
+      - >-
+        Run the headed check with PLAYER_HEADED=1 on a desktop session. Record browser, date,
+        device, advancing clocks and audible continuity across the boundary.
+      - >-
+        Enable PLAYER_REAL_LASTFM=1 with LASTFM_API_KEY. Confirm album, tags, summary and a
+        successfully loaded cover for the seeded New Order tracks.
+  rework_regression:
+    recorded_at: "2026-10-22T18:58:00Z"
+    liveview: 4 tests, 0 failures
+    precommit: 71 tests, 0 failures
+    node: 12 tests, 0 failures
+    external_network_requests: 0
+    note: >-
+      Automated tests used the local test database. Browser runs used isolated local
+      services without real Last.fm access and no automated network provider calls.
   gaps:
-    closed: true
-    items: []
+    closed: false
+    owner: human
+    items:
+      - >-
+        Sustained playback-clock advancement after the natural boundary in both windows,
+        blocked by the reproducible client-side stall described under manual.
+      - Human auditory confirmation across the boundary with browser, date and device.
+      - >-
+        Real Last.fm browser rendering with a loaded cover, blocked by the missing
+        LASTFM_API_KEY.
 skips:
   - item: Final background video
     reason: The user has not supplied the asset; the accepted provisional CSS scene is local and replaceable.
-  - item: Final visual Last.fm confirmation
-    reason: Real track.getInfo returned album, five tags, summary, and an allowlisted CDN cover; final browser confirmation is assigned to human PR review.

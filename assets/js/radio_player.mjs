@@ -2,22 +2,25 @@ import Hls from "hls.js"
 
 const hlsMimeType = "application/vnd.apple.mpegurl"
 
-export async function connectToLiveStream(audio, streamUrl, HlsType = Hls, onFatalError = () => {}) {
+export async function connectToLiveStream(audio, streamUrl, HlsType = Hls, onFatalError = () => {}, signal) {
   if (audio.canPlayType(hlsMimeType)) {
     audio.src = streamUrl
     await audio.play()
     return null
   }
 
-  if (!HlsType.isSupported()) throw new Error("HLS no está disponible en este navegador")
+  if (!HlsType.isSupported()) throw new Error("HLS is unavailable in this browser")
 
   const hls = new HlsType({
     liveSyncDuration: 1,
     liveMaxLatencyDuration: 2,
   })
 
-  hls.on(HlsType.Events.MANIFEST_PARSED, () => audio.play())
-  hls.on(HlsType.Events.ERROR, (_event, data) => data.fatal && onFatalError())
+  hls.on(HlsType.Events.MANIFEST_PARSED, () => {
+    if (!signal?.aborted) audio.play().catch(() => !signal?.aborted && onFatalError())
+  })
+  hls.on(HlsType.Events.ERROR, (_event, data) => !signal?.aborted && data.fatal && onFatalError())
+  signal?.addEventListener("abort", () => hls.destroy(), {once: true})
   hls.attachMedia(audio)
   hls.loadSource(streamUrl)
   return hls
@@ -29,9 +32,10 @@ export const RadioPlayer = {
     this.button = this.el.querySelector("#join-live")
     this.connected = false
     this.connecting = false
+    this.joinTimeoutMs ??= 15_000
     this.button.dataset.live = "false"
-    this.onPlaying = () => this.markLive()
-    this.onDisconnected = () => this.markDisconnected()
+    this.onPlaying = () => !this.attempt?.signal.aborted && this.connecting && this.markLive()
+    this.onDisconnected = () => !this.attempt?.signal.aborted && this.markDisconnected()
     this.onJoin = () => this.joinLive()
     this.audio.addEventListener("playing", this.onPlaying)
     this.audio.addEventListener("ended", this.onDisconnected)
@@ -40,6 +44,7 @@ export const RadioPlayer = {
   },
 
   markLive() {
+    clearTimeout(this.joinTimer)
     this.connected = true
     this.connecting = false
     this.button.hidden = false
@@ -49,8 +54,11 @@ export const RadioPlayer = {
   },
 
   markDisconnected() {
-    this.hls?.destroy()
-    this.hls = null
+    clearTimeout(this.joinTimer)
+    this.attempt?.abort()
+    this.audio.pause()
+    this.audio.removeAttribute("src")
+    this.audio.load()
     this.connected = false
     this.connecting = false
     this.button.disabled = false
@@ -63,27 +71,31 @@ export const RadioPlayer = {
 
     this.connecting = true
     this.button.disabled = true
-    this.hls?.destroy()
+    const attempt = this.attempt = new AbortController()
+    this.joinTimer = setTimeout(() => this.markDisconnected(), this.joinTimeoutMs)
 
     try {
-      this.hls = await connectToLiveStream(
+      await connectToLiveStream(
         this.audio,
         this.el.dataset.stream,
         Hls,
-        () => this.markDisconnected(),
+        () => !attempt.signal.aborted && this.markDisconnected(),
+        attempt.signal,
       )
     } catch (_error) {
+      if (attempt.signal.aborted) return
       this.markDisconnected()
       this.button.ariaLabel = "Emisión no disponible; reintentar"
     }
   },
 
   destroyed() {
+    clearTimeout(this.joinTimer)
     this.audio.removeEventListener("playing", this.onPlaying)
     this.audio.removeEventListener("ended", this.onDisconnected)
     this.audio.removeEventListener("error", this.onDisconnected)
     this.button.removeEventListener("click", this.onJoin)
-    this.hls?.destroy()
+    this.markDisconnected()
   },
 }
 

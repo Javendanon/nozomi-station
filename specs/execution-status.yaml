@@ -16,6 +16,10 @@ stories:
   e05s01:
     status: in_progress
     started_at: "2026-08-15T23:52:19Z"
+    blocked_on:
+      - lastfm_render: LASTFM_API_KEY and a real-provider browser run
+      - auditory_boundary: human listening in a headed desktop session
+      - natural_boundary: headed re-test of the reproduced client-side playback stall
   e06s01:
     status: todo
   e07s01:
