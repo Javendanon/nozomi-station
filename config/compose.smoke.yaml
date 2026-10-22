@@ -1,0 +1,12 @@
+# Test-only override: no external traffic, public DNS, or public ACME requests.
+services:
+  proxy:
+    environment:
+      TLS_POLICY: internal
+    ports: !reset []
+
+networks:
+  egress:
+    internal: true
+  edge:
+    internal: true

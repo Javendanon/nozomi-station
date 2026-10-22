@@ -1,0 +1,19 @@
+{$PHX_HOST} {
+	tls {$TLS_POLICY}
+
+	handle_path /hls/* {
+		@public path *.m3u8 *.ts
+		header Cache-Control "no-store"
+		root * /srv/hls
+		handle @public {
+			file_server
+		}
+		handle {
+			respond 404
+		}
+	}
+
+	handle {
+		reverse_proxy phoenix:4000
+	}
+}
