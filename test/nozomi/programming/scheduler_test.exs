@@ -11,6 +11,23 @@ defmodule NozomiStation.Programming.SchedulerTest do
   alias NozomiStation.Repo
   alias NozomiStation.Requests.Request
 
+  test "reconciles a durable receipt after an ACK without pushing again" do
+    request = insert_request("ready", "/host/media/accepted.m4a")
+
+    assert {:ok, %{requested: 1, complementary: 0}} =
+             Scheduler.run(
+               active_paths: fn -> {:ok, []} end,
+               push: fn _, _ -> flunk("raw push can duplicate an accepted delivery") end,
+               deliver: fn :requested, id, path ->
+                 assert id == request.id
+                 assert path == request.file_path
+                 {:ok, "queued"}
+               end
+             )
+
+    assert Repo.reload!(request).status == "queued"
+  end
+
   test "dispatches requested tracks before complementary tracks" do
     request = insert_request("ready", "/host/media/request.m4a")
     complementary = insert_complementary("ready", "/host/media/complementary.m4a")
