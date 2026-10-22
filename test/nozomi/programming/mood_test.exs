@@ -1,7 +1,7 @@
 defmodule NozomiStation.Programming.MoodTest do
   use NozomiStation.DataCase, async: true
 
-  alias NozomiStation.Programming.{Lastfm, Mood}
+  alias NozomiStation.Programming.{ComplementaryTrack, Lastfm, Mood}
   alias NozomiStation.Repo
   alias NozomiStation.Requests.Request
 
@@ -24,6 +24,55 @@ defmodule NozomiStation.Programming.MoodTest do
     assert hd(mood) == %{title: "Track 23", artist: "Artist 23"}
     assert List.last(mood) == %{title: "Track 4", artist: "Artist 4"}
     refute Enum.any?(mood, &(&1.title in ["Track 24", "Track 25"]))
+  end
+
+  test "derives ranked genre and decade tags from the latest requests" do
+    tracks = [
+      %{title: "Blue Monday", artist: "New Order"},
+      %{title: "Temptation", artist: "New Order"},
+      %{title: "Just Like Heaven", artist: "The Cure"}
+    ]
+
+    info = fn
+      "New Order", _title -> {:ok, %{tags: ["new wave", "80s"]}}
+      "The Cure", _title -> {:ok, %{tags: ["post-punk", "80s"]}}
+    end
+
+    assert %{tracks: ^tracks, tags: tags} =
+             Mood.profile(mood: fn -> tracks end, info: info)
+
+    assert tags == ["80s", "new wave", "post-punk"]
+  end
+
+  test "profile keeps working when tag signals are absent" do
+    tracks = [%{title: "Track", artist: "Artist"}]
+
+    assert %{tracks: ^tracks, tags: []} =
+             Mood.profile(mood: fn -> tracks end, info: fn _artist, _title -> {:ok, %{}} end)
+
+    assert %{tracks: ^tracks, tags: []} =
+             Mood.profile(
+               mood: fn -> tracks end,
+               info: fn _artist, _title -> {:error, :provider_unavailable} end
+             )
+  end
+
+  test "automatic complementary tracks never feed the mood profile" do
+    insert_request(1, "played")
+
+    %ComplementaryTrack{}
+    |> ComplementaryTrack.changeset(%{
+      youtube_id: "automatic-1",
+      title: "Seeded",
+      artist: "Seed Artist",
+      duration_seconds: 180,
+      origin: "seed",
+      status: "played"
+    })
+    |> Repo.insert!()
+
+    assert %{tracks: [%{title: "Track 1", artist: "Artist 1"}]} =
+             Mood.profile(info: fn _artist, _title -> {:ok, %{}} end)
   end
 
   test "mood candidates use track similarity and never seed tags" do

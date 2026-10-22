@@ -102,8 +102,8 @@ defmodule NozomiStation.Programming.ComplementaryQueueTest do
   test "refill worker requests enough candidates for the missing margin" do
     candidates = candidates(30)
 
-    source = fn mood, limit ->
-      send(self(), {:source, mood, limit})
+    source = fn signals, limit ->
+      send(self(), {:source, signals, limit})
       {:ok, candidates}
     end
 
@@ -115,13 +115,38 @@ defmodule NozomiStation.Programming.ComplementaryQueueTest do
     assert {:ok, %{available: 10}} =
              RefillWorker.run(
                count: fn -> 0 end,
-               mood: fn -> [] end,
+               profile: fn -> %{tracks: [], tags: []} end,
                source: source,
                fill: fill
              )
 
-    assert_received {:source, [], 30}
+    assert_received {:source, %{tracks: [], tags: []}, 30}
     assert_received {:fill, ^candidates, :seed}
+  end
+
+  test "refill worker forwards mood signals and marks the origin" do
+    profile = %{tracks: [%{title: "Blue Monday", artist: "New Order"}], tags: ["80s"]}
+
+    source = fn signals, _limit ->
+      send(self(), {:source, signals})
+      {:ok, candidates(1)}
+    end
+
+    fill = fn supplied, origin ->
+      send(self(), {:fill, supplied, origin})
+      {:ok, %{available: 10}}
+    end
+
+    assert {:ok, %{available: 10}} =
+             RefillWorker.run(
+               count: fn -> 0 end,
+               profile: fn -> profile end,
+               source: source,
+               fill: fill
+             )
+
+    assert_received {:source, ^profile}
+    assert_received {:fill, _, :mood}
   end
 
   test "refill worker does nothing when the margin is full" do

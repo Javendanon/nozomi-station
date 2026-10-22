@@ -7,28 +7,33 @@ defmodule NozomiStation.Programming.Lastfm do
 
   def candidates(mood, limit, request \\ &Req.request/1)
 
-  def candidates([], limit, request) do
-    tracks =
-      Enum.flat_map(@seeds, fn tag ->
-        fetch(request, "tag.gettoptracks", tag: tag, limit: limit)
-      end)
-
-    {:ok, unique(tracks, limit)}
+  def candidates(mood, limit, request) when is_list(mood) do
+    candidates(%{tracks: mood, tags: []}, limit, request)
   end
 
-  def candidates(mood, limit, request) do
-    tracks =
-      mood
-      |> Enum.reduce_while([], fn track, found ->
-        if length(found) >= limit do
-          {:halt, found}
-        else
-          params = [artist: track.artist, track: track.title, limit: limit]
-          {:cont, found ++ fetch(request, "track.getsimilar", params)}
-        end
-      end)
+  def candidates(%{tracks: []}, limit, request) do
+    {:ok, blend(tag_tracks(@seeds, limit, request), limit)}
+  end
 
-    {:ok, unique(tracks, limit)}
+  def candidates(%{tracks: tracks, tags: tags}, limit, request) do
+    sources = [similar_tracks(tracks, limit, request) | tag_tracks(tags, limit, request)]
+    {:ok, blend(sources, limit)}
+  end
+
+  defp similar_tracks(tracks, limit, request) do
+    tracks
+    |> Enum.reduce_while([], fn track, found ->
+      if length(found) >= limit do
+        {:halt, found}
+      else
+        params = [artist: track.artist, track: track.title, limit: limit]
+        {:cont, unique(found ++ fetch(request, "track.getsimilar", params), limit)}
+      end
+    end)
+  end
+
+  defp tag_tracks(tags, limit, request) do
+    Enum.map(tags, fn tag -> fetch(request, "tag.gettoptracks", tag: tag, limit: limit) end)
   end
 
   def track_info(artist, title, request \\ &Req.request/1) do
@@ -145,6 +150,15 @@ defmodule NozomiStation.Programming.Lastfm do
 
   defp put_detail(details, _key, value) when value in [nil, "", []], do: details
   defp put_detail(details, key, value), do: Map.put(details, key, value)
+
+  # Round-robin similarity and each mood tag, retaining unused candidates when a source runs out.
+  defp blend(sources, limit) do
+    sources
+    |> Enum.flat_map(&Enum.with_index/1)
+    |> Enum.sort_by(&elem(&1, 1))
+    |> Enum.map(&elem(&1, 0))
+    |> unique(limit)
+  end
 
   defp unique(tracks, limit) do
     tracks
