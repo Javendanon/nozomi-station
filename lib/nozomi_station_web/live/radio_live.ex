@@ -1,17 +1,52 @@
 defmodule NozomiStationWeb.RadioLive do
   use NozomiStationWeb, :live_view
 
+  alias NozomiStation.Identity
   alias NozomiStation.Programming.NowPlaying
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     now_playing =
       if connected?(socket) do
         :ok = NowPlaying.subscribe()
         NowPlaying.current()
       end
 
-    {:ok, assign(socket, stream_url: ~p"/hls/live.m3u8", now_playing: now_playing)}
+    {:ok,
+     assign(socket,
+       stream_url: ~p"/hls/live.m3u8",
+       now_playing: now_playing,
+       listener_id: session["listener_id"],
+       identity: nil,
+       identity_persistent?: true
+     )}
+  end
+
+  @impl true
+  def handle_event("restore_identity", data, socket) do
+    identity = socket.assigns.identity || Identity.restore(data, socket.assigns.listener_id)
+    {:noreply, put_identity(socket, identity, true)}
+  end
+
+  def handle_event("regenerate_alias", _params, %{assigns: %{identity: nil}} = socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("regenerate_alias", _params, socket) do
+    {:noreply, put_identity(socket, Identity.regenerate(socket.assigns.identity))}
+  end
+
+  def handle_event("identity_storage", %{"available" => available}, socket)
+      when is_boolean(available) do
+    {:noreply, assign(socket, :identity_persistent?, available)}
+  end
+
+  def handle_event("identity_storage", _params, socket), do: {:noreply, socket}
+
+  defp put_identity(socket, identity, restored? \\ false) do
+    socket
+    |> assign(:identity, identity)
+    |> push_event("identity", Map.put(identity, :restored, restored?))
   end
 
   @impl true
@@ -45,6 +80,41 @@ defmodule NozomiStationWeb.RadioLive do
           </div>
 
           <div id="station-side" class="station-side">
+            <section
+              id="local-identity"
+              phx-hook="LocalIdentity"
+              aria-label="Your local listener identity"
+              class="rounded-2xl border border-white/15 bg-black/25 p-5 text-white"
+            >
+              <p class="text-xs font-medium uppercase tracking-widest text-white/60">
+                Your railway alias
+              </p>
+              <p id="listener-alias" aria-live="polite" class="mt-2 break-words text-sm font-semibold">
+                {if @identity, do: @identity.alias, else: "Connecting your identity…"}
+              </p>
+              <button
+                id="regenerate-alias"
+                type="button"
+                phx-click="regenerate_alias"
+                phx-disable-with="Regenerating…"
+                disabled={is_nil(@identity)}
+                class="mt-3 rounded-lg border border-white/20 px-3 py-2 text-xs transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-wait disabled:opacity-50"
+              >
+                Regenerate alias
+              </button>
+              <p class="mt-3 text-xs leading-relaxed text-white/60">
+                No account needed. Changing your alias does not reset your votes.
+              </p>
+              <p
+                :if={!@identity_persistent?}
+                id="identity-storage-warning"
+                role="status"
+                class="mt-3 text-xs leading-relaxed text-amber-200"
+              >
+                Browser storage is unavailable. Your alias lasts only until this page is closed or reloaded.
+              </p>
+            </section>
+
             <article :if={@now_playing} id="now-playing" class="now-playing-card">
               <img
                 :if={Map.get(@now_playing, :cover_url)}
